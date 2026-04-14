@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>اسم المصروف</label>
+                {{ form.name }}
+            </div>
+
+            <div class="col-6">
+                <label>التصنيف</label>
+                {{ form.category }}
+            </div>
+
+            <div class="col-6">
+                <label>المبلغ</label>
+                {{ form.amount }}
+            </div>
+
+            <div class="col-6">
+                <label>تاريخ المصروف</label>
+                {{ form.expense_date }}
+            </div>
+
+            <div class="col-12">
+                <label>ملاحظات</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'manager-profit-center' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

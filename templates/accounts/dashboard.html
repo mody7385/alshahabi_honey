@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة العامل{% endblock %}
+
+{% block content %}
+{% if profile %}
+<div class="hero-card">
+    <h2>مرحبًا {{ profile.full_name }}</h2>
+    <p class="muted">المخزن: {{ profile.warehouse }} | الدور: {{ profile.get_role_display }}</p>
+
+    <div class="actions">
+        <a href="{% url 'worker-sale-create' %}" class="btn">إضافة عملية بيع</a>
+        <a href="{% url 'worker-sales-list' %}" class="btn btn-secondary">مبيعاتي</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي البيع النقدي</div>
+            <div class="stat-number">{{ profile.total_cash_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المصروفات</div>
+            <div class="stat-number">{{ profile.total_expenses }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">الرصيد الحالي</div>
+            <div class="stat-number">{{ profile.final_balance }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3>القوائم السريعة</h3>
+    <div class="quick-links">
+        <a href="{% url 'worker-sale-create' %}">إضافة عملية بيع</a>
+        <a href="{% url 'worker-sales-list' %}">مبيعاتي</a>
+        <a href="{% url 'worker-account-summary' %}">حسابي</a>
+        <a href="{% url 'worker-inventory-list' %}">مخزون المخزن</a>
+    </div>
+</div>
+{% else %}
+<div class="panel-card">
+    <h2>لا يوجد ملف مستخدم</h2>
+    <p class="muted">هذا الحساب غير مربوط بملف داخل النظام.</p>
+</div>
+{% endif %}
+{% endblock %}

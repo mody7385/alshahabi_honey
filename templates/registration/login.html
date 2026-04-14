@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}تسجيل الدخول - الشهابي للعسل{% endblock %}
+
+{% block content %}
+<div class="panel-card" style="max-width: 520px; margin: 0 auto;">
+    <h2>تسجيل الدخول</h2>
+    <p class="muted">مرحبًا بك في نظام الشهابي للعسل</p>
+
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-12">
+                <label for="id_username">اسم المستخدم</label>
+                {{ form.username }}
+            </div>
+
+            <div class="col-12">
+                <label for="id_password">كلمة المرور</label>
+                {{ form.password }}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">دخول</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

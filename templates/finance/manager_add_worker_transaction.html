@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة حركة مالية{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>إضافة حركة مالية للعامل</h2>
+    <p class="muted">العامل: {{ worker.full_name }} | المخزن: {{ worker.warehouse }}</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>نوع الحركة</label>
+                {{ form.transaction_type }}
+            </div>
+
+            <div class="col-6">
+                <label>المبلغ</label>
+                {{ form.amount }}
+            </div>
+
+            <div class="col-12">
+                <label>ملاحظات</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div class="form-note">
+            استخدم هذه الصفحة لإضافة: مصروف، إضافة، أو خصم على العامل فقط.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">حفظ الحركة</button>
+            <a href="{% url 'manager-worker-account-detail' worker.pk %}" class="btn btn-secondary">رجوع إلى التفاصيل</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}التقارير{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>التقارير</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+
+    <div class="actions">
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المبيعات</div>
+            <div class="stat-number">{{ total_sales_amount }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي البيع النقدي</div>
+            <div class="stat-number">{{ total_cash_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الحوالات</div>
+            <div class="stat-number">{{ total_transfer_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الآجل</div>
+            <div class="stat-number">{{ total_deferred_sales }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3 class="section-title">أفضل العمال حسب قيمة المبيعات</h3>
+    <div class="soft-divider"></div>
+
+    {% if top_workers %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>العامل</th>
+                        <th>عدد العمليات</th>
+                        <th>إجمالي المبيعات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_workers %}
+                    <tr>
+                        <td>{{ item.worker__full_name }}</td>
+                        <td>{{ item.sales_count }}</td>
+                        <td>{{ item.total_sales }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد بيانات مبيعات حتى الآن.</p>
+    {% endif %}
+</div>
+
+<div class="panel-card">
+    <h3 class="section-title">أكثر المنتجات مبيعًا</h3>
+    <div class="soft-divider"></div>
+
+    {% if top_products %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>عدد العمليات</th>
+                        <th>إجمالي الدبب</th>
+                        <th>إجمالي الكيلوات</th>
+                        <th>إجمالي المبيعات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_products %}
+                    <tr>
+                        <td>{{ item.product__name }}</td>
+                        <td>{{ item.sales_count }}</td>
+                        <td>{{ item.total_dabba|default:"0" }}</td>
+                        <td>{{ item.total_kg|default:"0" }}</td>
+                        <td>{{ item.total_sales }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد بيانات منتجات مباعة حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

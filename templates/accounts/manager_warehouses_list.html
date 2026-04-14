@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}المخازن{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>المخازن</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+    <div class="page-meta">عدد المخازن: {{ warehouses|length }}</div>
+
+    <div class="actions">
+        <a href="{% url 'manager-warehouse-create' %}" class="btn">إضافة مخزن</a>
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if warehouses %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>اسم المخزن</th>
+                        <th>المدينة</th>
+                        <th>الحالة</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for warehouse in warehouses %}
+                    <tr>
+                        <td>{{ warehouse.name }}</td>
+                        <td>{{ warehouse.city }}</td>
+                        <td>
+                            {% if warehouse.is_active %}
+                                <span class="badge badge-success">نشط</span>
+                            {% else %}
+                                <span class="badge badge-danger">غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ warehouse.created_at|date:"Y-m-d h:i A" }}</td>
+                        <td>
+                            <a href="{% url 'manager-warehouse-update' warehouse.pk %}">تعديل</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد مخازن حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

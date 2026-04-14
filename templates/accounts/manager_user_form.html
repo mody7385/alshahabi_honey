@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>الاسم الكامل</label>
+                {{ form.full_name }}
+            </div>
+
+            <div class="col-6">
+                <label>رقم الجوال</label>
+                {{ form.phone }}
+            </div>
+
+            <div class="col-6">
+                <label>اسم المستخدم</label>
+                {{ form.username }}
+            </div>
+
+            <div class="col-6">
+                <label>كلمة المرور</label>
+                {{ form.password }}
+            </div>
+
+            <div class="col-6">
+                <label>الدور</label>
+                {{ form.role }}
+            </div>
+
+            <div class="col-6">
+                <label>المخزن</label>
+                {{ form.warehouse }}
+            </div>
+
+            <div class="col-12">
+                <label>الحالة</label>
+                {{ form.is_active }}
+            </div>
+        </div>
+
+        <div class="form-note">
+            عند إنشاء مستخدم جديد يجب إدخال كلمة المرور. عند التعديل اتركها فارغة إذا كنت لا تريد تغييرها.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'manager-users-list' %}" class="btn btn-secondary">رجوع إلى المستخدمين</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

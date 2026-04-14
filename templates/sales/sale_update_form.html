@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل عملية بيع{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>تعديل عملية بيع</h2>
+    <p class="muted">المنتج: {{ sale.product.name }} | العامل: {{ sale.worker.full_name }}</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>اسم العميل (اختياري)</label>
+                {{ form.customer_name }}
+            </div>
+
+            <div class="col-6">
+                <label>رقم جوال العميل (اختياري)</label>
+                {{ form.customer_phone }}
+            </div>
+
+            <div class="col-6">
+                <label>المنتج</label>
+                {{ form.product }}
+            </div>
+
+            <div class="col-3">
+                <label>عدد الدبب</label>
+                {{ form.quantity_dabba }}
+            </div>
+
+            <div class="col-3">
+                <label>سعر الدبة</label>
+                {{ form.price_per_dabba }}
+            </div>
+
+            <div class="col-3">
+                <label>عدد الكيلوات</label>
+                {{ form.quantity_kg }}
+            </div>
+
+            <div class="col-3">
+                <label>سعر الكيلو</label>
+                {{ form.price_per_kg }}
+            </div>
+
+            <div class="col-6">
+                <label>نوع الدفع</label>
+                {{ form.payment_type }}
+            </div>
+
+            <div class="col-12">
+                <label>ملاحظات</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">حفظ التعديلات</button>
+            <a href="{% url 'sale-delete' sale.pk %}" class="btn btn-secondary">حذف العملية</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف عملية بيع{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>تأكيد حذف عملية بيع</h2>
+    <p class="muted">هل أنت متأكد من حذف هذه العملية؟</p>
+</div>
+
+<div class="panel-card">
+    <div class="grid">
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">المنتج</div>
+                <div class="stat-number" style="font-size:18px;">{{ sale.product.name }}</div>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">العامل</div>
+                <div class="stat-number" style="font-size:18px;">{{ sale.worker.full_name }}</div>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">الإجمالي</div>
+                <div class="stat-number">{{ sale.total_amount }}</div>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">التاريخ</div>
+                <div class="stat-number" style="font-size:18px;">{{ sale.sale_date|date:"Y-m-d h:i A" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn">تأكيد الحذف</button>
+            <a href="{% url 'sale-update' sale.pk %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}المستخدمون{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>المستخدمون</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+    <div class="page-meta">عدد المستخدمين: {{ users_list|length }}</div>
+
+    <div class="actions">
+        <a href="{% url 'manager-user-create' %}" class="btn">إضافة مستخدم</a>
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if users_list %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>الاسم الكامل</th>
+                        <th>اسم المستخدم</th>
+                        <th>الدور</th>
+                        <th>المخزن</th>
+                        <th>رقم الجوال</th>
+                        <th>الحالة</th>
+                        <th>التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in users_list %}
+                    <tr>
+                        <td>{{ item.full_name }}</td>
+                        <td>{{ item.user.username }}</td>
+                        <td>{{ item.get_role_display }}</td>
+                        <td>{% if item.warehouse %}{{ item.warehouse.name }}{% else %}-{% endif %}</td>
+                        <td>{{ item.phone|default:"-" }}</td>
+                        <td>
+                            {% if item.is_active %}
+                                <span class="badge badge-success">نشط</span>
+                            {% else %}
+                                <span class="badge badge-danger">غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'manager-user-update' item.pk %}">تعديل</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا يوجد مستخدمون حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

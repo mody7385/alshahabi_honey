@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}مبيعات المدير{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>جميع المبيعات</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+    <div class="page-meta">عدد العمليات: {{ sales|length }}</div>
+
+    <div class="actions">
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if sales %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>العامل</th>
+                        <th>المخزن</th>
+                        <th>المنتج</th>
+                        <th>العميل</th>
+                        <th>الدفع</th>
+                        <th>الدبب</th>
+                        <th>الكيلوات</th>
+                        <th>الإجمالي</th>
+                        <th>الربح</th>
+                        <th>التاريخ</th>
+                        <th>التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.worker.full_name }}</td>
+                        <td>{{ sale.warehouse.name }}</td>
+                        <td>{{ sale.product.name }}</td>
+                        <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}-{% endif %}</td>
+                        <td>
+                            {% if sale.payment_type == 'cash' %}
+                                <span class="badge badge-success">نقد</span>
+                            {% elif sale.payment_type == 'transfer' %}
+                                <span class="badge badge-warning">حوالة</span>
+                            {% else %}
+                                <span class="badge badge-danger">آجل</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ sale.quantity_dabba }}</td>
+                        <td>{{ sale.quantity_kg }}</td>
+                        <td>{{ sale.total_amount }}</td>
+                        <td>{{ sale.profit_amount }}</td>
+                        <td>{{ sale.sale_date|date:"Y-m-d h:i A" }}</td>
+                        <td><a href="{% url 'sale-update' sale.pk %}">تعديل</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد مبيعات حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

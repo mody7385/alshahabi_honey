@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>المخزن</label>
+                {{ form.warehouse }}
+            </div>
+
+            <div class="col-6">
+                <label>اسم المنتج</label>
+                {{ form.name }}
+            </div>
+
+            <div class="col-6">
+                <label>نوع العسل</label>
+                {{ form.honey_type }}
+            </div>
+
+            <div class="col-6">
+                <label>سعر الشراء للكيلو</label>
+                {{ form.purchase_price_per_kg }}
+            </div>
+
+            <div class="col-6">
+                <label>سعر البيع الافتراضي للدبة</label>
+                {{ form.default_sale_price_per_dabba }}
+            </div>
+
+            <div class="col-6">
+                <label>سعر البيع الافتراضي للكيلو</label>
+                {{ form.default_sale_price_per_kg }}
+            </div>
+
+            <div class="col-12">
+                <label>الحالة</label>
+                {{ form.is_active }}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'manager-products-list' %}" class="btn btn-secondary">رجوع إلى المنتجات</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

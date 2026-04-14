@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}مبيعاتي{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>مبيعاتي</h2>
+    <p class="muted">العامل: {{ profile.full_name }} | المخزن: {{ profile.warehouse }}</p>
+
+    <div class="actions">
+        <a href="{% url 'worker-sale-create' %}" class="btn">إضافة عملية بيع</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if sales %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>العميل</th>
+                        <th>الدفع</th>
+                        <th>الدبب</th>
+                        <th>الكيلوات</th>
+                        <th>الإجمالي</th>
+                        <th>التاريخ</th>
+                        <th>التفاصيل</th>
+                        <th>التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.product.name }}</td>
+                        <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}-{% endif %}</td>
+                        <td>{{ sale.get_payment_type_display }}</td>
+                        <td>{{ sale.quantity_dabba }}</td>
+                        <td>{{ sale.quantity_kg }}</td>
+                        <td>{{ sale.total_amount }}</td>
+                        <td>{{ sale.sale_date|date:"Y-m-d h:i A" }}</td>
+                        <td><a href="{% url 'worker-sale-detail' sale.pk %}">عرض</a></td>
+                        <td><a href="{% url 'sale-update' sale.pk %}">تعديل</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد مبيعات مسجلة حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

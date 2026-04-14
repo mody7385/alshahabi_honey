@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة المدير{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>لوحة المدير</h2>
+    <p class="muted">مرحبًا {{ profile.full_name }}، هذه نظرة عامة على النظام.</p>
+</div>
+
+<div class="grid">
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">عدد العمال</div>
+            <div class="stat-number">{{ total_workers }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">عدد المخازن</div>
+            <div class="stat-number">{{ total_warehouses }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">عدد المنتجات</div>
+            <div class="stat-number">{{ total_products }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الربح</div>
+            <div class="stat-number">{{ total_profit }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المبيعات</div>
+            <div class="stat-number">{{ total_sales_amount }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي النقد المسجل على العمال</div>
+            <div class="stat-number">{{ total_worker_cash }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي البيع النقدي</div>
+            <div class="stat-number">{{ total_cash_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الحوالات</div>
+            <div class="stat-number">{{ total_transfer_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الآجل</div>
+            <div class="stat-number">{{ total_deferred_sales }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3>القوائم السريعة</h3>
+    <div class="quick-links">
+        <a href="{% url 'manager-warehouses-list' %}">المخازن</a>
+        <a href="{% url 'manager-products-list' %}">المنتجات</a>
+        <a href="{% url 'manager-inventory-list' %}">المخزون</a>
+        <a href="{% url 'manager-sales-list' %}">المبيعات</a>
+        <a href="{% url 'manager-customers-list' %}">العملاء</a>
+        <a href="{% url 'manager-worker-accounts-list' %}">حسابات العمال</a>
+        <a href="{% url 'manager-users-list' %}">المستخدمون</a>
+        <a href="{% url 'manager-reports' %}">التقارير</a>
+        <a href="{% url 'manager-profit-center' %}">الأرباح والمصاريف</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}حسابات العمال{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>حسابات العمال</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+
+    <div class="actions">
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if workers %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>العامل</th>
+                        <th>المخزن</th>
+                        <th>إجمالي البيع النقدي</th>
+                        <th>إجمالي المصروفات</th>
+                        <th>إجمالي الإضافات</th>
+                        <th>إجمالي الخصومات</th>
+                        <th>الرصيد النهائي</th>
+                        <th>الحالة</th>
+                        <th>التفاصيل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in workers %}
+                    <tr>
+                        <td>{{ worker.full_name }}</td>
+                        <td>{% if worker.warehouse %}{{ worker.warehouse.name }}{% else %}-{% endif %}</td>
+                        <td>{{ worker.total_cash_sales }}</td>
+                        <td>{{ worker.total_expenses }}</td>
+                        <td>{{ worker.total_additions }}</td>
+                        <td>{{ worker.total_deductions }}</td>
+                        <td>{{ worker.final_balance }}</td>
+                        <td>{{ worker.balance_status }}</td>
+                        <td><a href="{% url 'manager-worker-account-detail' worker.pk %}">عرض</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا يوجد عمال حاليًا.</p>
+    {% endif %}
+</div>
+{% endblock %}

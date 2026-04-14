@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة عملية بيع{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>إضافة عملية بيع</h2>
+    <p class="muted">العامل: {{ profile.full_name }} | المخزن: {{ profile.warehouse }}</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>اسم العميل (اختياري)</label>
+                {{ form.customer_name }}
+            </div>
+
+            <div class="col-6">
+                <label>رقم جوال العميل (اختياري)</label>
+                {{ form.customer_phone }}
+            </div>
+
+            <div class="col-6">
+                <label>المنتج</label>
+                {{ form.product }}
+            </div>
+
+            <div class="col-3">
+                <label>عدد الدبب</label>
+                {{ form.quantity_dabba }}
+            </div>
+
+            <div class="col-3">
+                <label>سعر الدبة</label>
+                {{ form.price_per_dabba }}
+            </div>
+
+            <div class="col-3">
+                <label>عدد الكيلوات</label>
+                {{ form.quantity_kg }}
+            </div>
+
+            <div class="col-3">
+                <label>سعر الكيلو</label>
+                {{ form.price_per_kg }}
+            </div>
+
+            <div class="col-6">
+                <label>نوع الدفع</label>
+                {{ form.payment_type }}
+            </div>
+
+            <div class="col-12">
+                <label>ملاحظات</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div class="form-note">
+            أدخل اسم العميل أو رقمه فقط إذا توفر. في البيع الآجل يجب إدخال اسم أو رقم عميل.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">حفظ عملية البيع</button>
+            <a href="{% url 'worker-sales-list' %}" class="btn btn-secondary">مبيعاتي</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

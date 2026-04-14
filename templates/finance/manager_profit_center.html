@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}الأرباح والمصاريف{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>الأرباح والمصاريف</h2>
+    <p class="muted">الفترة الحالية: {{ period_label }}</p>
+    <div class="page-meta">{{ start_date }} → {{ end_date }}</div>
+
+    <div class="actions">
+        <a href="{% url 'manager-profit-center' %}?period=today" class="btn btn-secondary">اليوم</a>
+        <a href="{% url 'manager-profit-center' %}?period=week" class="btn btn-secondary">الأسبوع</a>
+        <a href="{% url 'manager-profit-center' %}?period=month" class="btn btn-secondary">الشهر</a>
+        <a href="{% url 'manager-profit-center' %}?period=year" class="btn btn-secondary">السنة</a>
+    </div>
+
+    <div class="actions">
+        <a href="{% url 'manager-operating-expense-create' %}" class="btn">إضافة مصروف</a>
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي ربح المبيعات</div>
+            <div class="stat-number">{{ gross_profit }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المصاريف</div>
+            <div class="stat-number">{{ total_expenses }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">الربح النهائي</div>
+            <div class="stat-number">{{ net_profit }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3 class="section-title">المصاريف التشغيلية</h3>
+    <div class="soft-divider"></div>
+
+    {% if expenses %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>اسم المصروف</th>
+                        <th>التصنيف</th>
+                        <th>المبلغ</th>
+                        <th>التاريخ</th>
+                        <th>الملاحظات</th>
+                        <th>التعديل</th>
+                        <th>الحذف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in expenses %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.get_category_display }}</td>
+                        <td>{{ item.amount }}</td>
+                        <td>{{ item.expense_date }}</td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                        <td><a href="{% url 'manager-operating-expense-update' item.pk %}">تعديل</a></td>
+                        <td><a href="{% url 'manager-operating-expense-delete' item.pk %}">حذف</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد مصاريف ضمن هذه الفترة.</p>
+    {% endif %}
+</div>
+{% endblock %}

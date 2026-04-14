@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+</div>
+
+<div class="panel-card">
+    {% if form.non_field_errors %}
+        <div class="alert-error">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>اسم المخزن</label>
+                {{ form.name }}
+            </div>
+
+            <div class="col-6">
+                <label>المدينة</label>
+                {{ form.city }}
+            </div>
+
+            <div class="col-12">
+                <label>الحالة</label>
+                {{ form.is_active }}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'manager-warehouses-list' %}" class="btn btn-secondary">رجوع إلى المخازن</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

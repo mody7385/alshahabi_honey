@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل عملية البيع{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>تفاصيل عملية البيع</h2>
+    <p class="muted">العامل: {{ profile.full_name }} | المخزن: {{ profile.warehouse }}</p>
+
+    <div class="actions">
+        <a href="{% url 'worker-sales-list' %}" class="btn btn-secondary">رجوع إلى مبيعاتي</a>
+        <a href="{% url 'sale-update' sale.pk %}" class="btn">تعديل العملية</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">المنتج</div>
+            <div class="stat-number" style="font-size:18px;">{{ sale.product.name }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">نوع الدفع</div>
+            <div class="stat-number" style="font-size:18px;">{{ sale.get_payment_type_display }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">العميل</div>
+            <div class="stat-number" style="font-size:18px;">{% if sale.customer %}{{ sale.customer.name }}{% else %}-{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">رقم الجوال</div>
+            <div class="stat-number" style="font-size:18px;">{% if sale.customer and sale.customer.phone %}{{ sale.customer.phone }}{% else %}-{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">عدد الدبب</div>
+            <div class="stat-number">{{ sale.quantity_dabba }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">سعر الدبة</div>
+            <div class="stat-number">{{ sale.price_per_dabba }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">عدد الكيلوات</div>
+            <div class="stat-number">{{ sale.quantity_kg }}</div>
+        </div>
+    </div>
+
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">سعر الكيلو</div>
+            <div class="stat-number">{{ sale.price_per_kg }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">الإجمالي</div>
+            <div class="stat-number">{{ sale.total_amount }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">التاريخ</div>
+            <div class="stat-number" style="font-size:18px;">{{ sale.sale_date|date:"Y-m-d h:i A" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3>الملاحظات</h3>
+    <p class="muted">{% if sale.notes %}{{ sale.notes }}{% else %}لا توجد ملاحظات.{% endif %}</p>
+</div>
+{% endblock %}

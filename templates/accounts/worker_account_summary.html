@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}حسابي{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>حسابي</h2>
+    <p class="muted">العامل: {{ profile.full_name }} | المخزن: {{ profile.warehouse }}</p>
+
+    <div class="actions">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي البيع النقدي</div>
+            <div class="stat-number">{{ profile.total_cash_sales }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المصروفات</div>
+            <div class="stat-number">{{ profile.total_expenses }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الإضافات</div>
+            <div class="stat-number">{{ profile.total_additions }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الخصومات</div>
+            <div class="stat-number">{{ profile.total_deductions }}</div>
+        </div>
+    </div>
+
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">الرصيد النهائي</div>
+            <div class="stat-number">{{ profile.final_balance }}</div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="stat-card">
+            <div class="stat-title">الحالة</div>
+            <div class="stat-number">{{ profile.balance_status }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

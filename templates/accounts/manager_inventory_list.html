@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}المخزون{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>المخزون</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+    <div class="page-meta">عدد السجلات: {{ inventory_items|length }}</div>
+
+    <div class="actions">
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if inventory_items %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المخزن</th>
+                        <th>المنتج</th>
+                        <th>نوع العسل</th>
+                        <th>الدبب الكاملة</th>
+                        <th>الكيلو المفتوح</th>
+                        <th>آخر تحديث</th>
+                        <th>إدارة المخزون</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory_items %}
+                    <tr>
+                        <td>{{ item.product.warehouse.name }}</td>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.product.honey_type|default:"-" }}</td>
+                        <td>{{ item.full_dabba_count }}</td>
+                        <td>{{ item.open_kg }}</td>
+                        <td>{{ item.updated_at|date:"Y-m-d h:i A" }}</td>
+                        <td>
+                            <a href="{% url 'manager-inventory-adjust' item.pk %}">تعديل الكمية</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد بيانات مخزون حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

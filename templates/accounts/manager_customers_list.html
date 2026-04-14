@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}قاعدة العملاء{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>قاعدة العملاء</h2>
+    <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
+
+    <div class="actions">
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if customers %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>رقم الجوال</th>
+                        <th>ملاحظات</th>
+                        <th>تاريخ الإضافة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ customer.name }}</td>
+                        <td>{{ customer.phone|default:"-" }}</td>
+                        <td>{{ customer.notes|default:"-" }}</td>
+                        <td>{{ customer.created_at|date:"Y-m-d h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد بيانات عملاء حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

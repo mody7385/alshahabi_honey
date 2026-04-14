@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل حساب العامل{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>تفاصيل حساب العامل</h2>
+    <p class="muted">العامل: {{ worker.full_name }} | المخزن: {{ worker.warehouse }}</p>
+
+    <div class="actions">
+        <a href="{% url 'manager-worker-accounts-list' %}" class="btn btn-secondary">رجوع إلى حسابات العمال</a>
+        <a href="{% url 'manager-add-worker-transaction' worker.pk %}" class="btn">إضافة حركة مالية</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي البيع النقدي</div>
+            <div class="stat-number">{{ worker.total_cash_sales }}</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المصروفات</div>
+            <div class="stat-number">{{ worker.total_expenses }}</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الإضافات</div>
+            <div class="stat-number">{{ worker.total_additions }}</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الخصومات</div>
+            <div class="stat-number">{{ worker.total_deductions }}</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">الرصيد النهائي</div>
+            <div class="stat-number">{{ worker.final_balance }}</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">الحالة</div>
+            <div class="stat-number">{{ worker.balance_status }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3>الحركات التفصيلية</h3>
+
+    {% if transactions %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>مرتبط ببيع</th>
+                        <th>ملاحظات</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in transactions %}
+                    <tr>
+                        <td>{{ item.get_transaction_type_display }}</td>
+                        <td>{{ item.amount }}</td>
+                        <td>{% if item.sale %}نعم{% else %}-{% endif %}</td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                        <td>{{ item.created_at|date:"Y-m-d h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد حركات لهذا العامل حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

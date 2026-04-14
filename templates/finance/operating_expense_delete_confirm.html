@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف مصروف{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>تأكيد حذف المصروف</h2>
+    <p class="muted">هل أنت متأكد من حذف هذا المصروف؟</p>
+</div>
+
+<div class="panel-card">
+    <div class="grid">
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">اسم المصروف</div>
+                <div class="stat-number" style="font-size:18px;">{{ expense.name }}</div>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="stat-card">
+                <div class="stat-title">المبلغ</div>
+                <div class="stat-number">{{ expense.amount }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn">تأكيد الحذف</button>
+            <a href="{% url 'manager-profit-center' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

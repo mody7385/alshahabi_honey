@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}مخزون المخزن{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>مخزون المخزن</h2>
+    <p class="muted">العامل: {{ profile.full_name }} | المخزن: {{ profile.warehouse }}</p>
+
+    <div class="actions">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if inventory_items %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>نوع العسل</th>
+                        <th>الدبب الكاملة</th>
+                        <th>الكيلو المفتوح</th>
+                        <th>آخر تحديث</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory_items %}
+                    <tr>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.product.honey_type|default:"-" }}</td>
+                        <td>{{ item.full_dabba_count }}</td>
+                        <td>{{ item.open_kg }}</td>
+                        <td>{{ item.updated_at|date:"Y-m-d h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد بيانات مخزون لهذا المخزن حاليًا.</p>
+    {% endif %}
+</div>
+{% endblock %}
