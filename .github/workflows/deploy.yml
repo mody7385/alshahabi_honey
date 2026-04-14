@@ -1,0 +1,35 @@
+name: Deploy Django to Render
+
+on:
+  push:
+    branches:
+      -master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9  # أو نسختك من Python
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        run: |
+          python manage.py migrate
+
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --noinput
+
+      - name: Push changes to Render
+        run: |
+          git remote add render https://your-github-repository-url
+          git push render main
