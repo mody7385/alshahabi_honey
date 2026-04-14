@@ -1,7 +1,8 @@
+name: Deploy Django to Render
 on:
   push:
     branches:
-      - main  # إذا كنت تستخدم main
+      - master  # إذا كنت تستخدم master
 
 jobs:
   deploy:
@@ -30,4 +31,4 @@ jobs:
       - name: Push changes to Render
         run: |
           git remote add render https://your-github-repository-url
-          git push render main
+          git push render master
