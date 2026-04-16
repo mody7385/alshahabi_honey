@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import dj_database_url
 
 # تأكد من أنك قد قمت بتحديد المسار بشكل صحيح
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +38,7 @@ MIDDLEWARE = [
 # إعدادات قاعدة البيانات
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
         conn_health_checks=True,
     )
