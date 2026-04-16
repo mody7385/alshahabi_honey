@@ -2,65 +2,43 @@ import os
 from pathlib import Path
 import dj_database_url
 
-# تأكد من أنك قد قمت بتحديد المسار بشكل صحيح
+# BASE_DIR is the base directory of your Django project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# إعدادات الأمان
-SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key')  # استخدم متغير بيئي
-DEBUG = os.environ.get('DEBUG', 'False') == 'False'  # تأكد من أنه False في بيئة الإنتاج
+# SECRET_KEY
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'local-dev-secret-key-change-me-1234567890-abcdefghijklmnopqrstuvwxyz'
+)
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', os.environ.get('RENDER_EXTERNAL_HOSTNAME')]  # للسماح بكل النطاقات في حالة النشر
+# Debug mode
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+# Allowed Hosts
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'alshahabi-honey.onrender.com']
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME'))
 
+# CSRF settings
 CSRF_TRUSTED_ORIGINS = []
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     CSRF_TRUSTED_ORIGINS.append(f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}")
 
-# Static files (CSS, JavaScript, Images)
-# سيجمع هذا جميع الملفات الثابتة
+# Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# إذا كنت تستخدم ملفات ثابتة عبر internet
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # لتحسين التعامل مع الملفات الثابتة في الإنتاج
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-# إعدادات قاعدة البيانات
+# Database Configuration
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",  # You can use PostgreSQL if you prefer
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
-# إعدادات المزامنة في الإنتاج
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True  # يتم تحويل جميع الطلبات إلى HTTPS
-    SESSION_COOKIE_SECURE = True  # استخدام ملفات تعريف ارتباط آمنة فقط
-    CSRF_COOKIE_SECURE = True  # تأمين ملفات تعريف ارتباط CSRF
-
-# إعدادات اللغة والوقت
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
-# إعدادات المصادقة وتسجيل الدخول
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
-
-# إعدادات كلمة المرور
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -76,7 +54,30 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# إعدادات التطبيقات المثبتة
+# Language and Timezone
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Login and Logout URLs
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+# Middleware settings
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Used for handling static files
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# Installed apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -85,17 +86,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Add your apps here
     'accounts',
     'warehouses',
     'products',
-    'inventory.apps.InventoryConfig',
+    'inventory',
     'customers',
     'sales',
     'finance',
     'core',
 ]
 
-# إعدادات ملفات النموذج
+# Template settings
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -111,10 +113,35 @@ TEMPLATES = [
     },
 ]
 
-# WSGI Application
+# WSGI application
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# إعدادات الامان الأخرى
-SECURE_HSTS_SECONDS = 31536000  # Force HTTPS
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+WHITENOISE_AUTOREFRESH = True  # This helps serve static files during development
+
+# Security settings
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 3600  # Enable HTTP Strict Transport Security
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+# Configure Django App for Heroku or other cloud hosting
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# Define the file storage backend for media files (if using media)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# For environments like Render, use the `dj-database-url` to connect PostgreSQL
+DATABASES['default'] = dj_database_url.config(
+    default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+    conn_max_age=600
+)
