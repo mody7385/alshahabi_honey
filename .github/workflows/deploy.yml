@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9  # أو نسختك من Python
+          python-version: 3.14.3  # أو النسخة التي تستخدمها
 
       - name: Install dependencies
         run: |
@@ -28,7 +28,7 @@ jobs:
         run: |
           python manage.py collectstatic --noinput
 
-      - name: Push changes to Render
+      # الخطوة الأخيرة هي فقط نشر التحديثات إلى Render مباشرة عبر GitHub
+      - name: Deploy to Render
         run: |
-          git remote add render https://your-github-repository-url
-          git push render master
+          echo "Deployment is automatically managed by Render. No need for git push."
