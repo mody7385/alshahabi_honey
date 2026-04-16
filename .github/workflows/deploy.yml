@@ -1,0 +1,34 @@
+name: Deploy Django to Render
+on:
+  push:
+    branches:
+      - master  # إذا كنت تستخدم master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.14.3  # أو النسخة التي تستخدمها
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        run: |
+          python manage.py migrate
+
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --noinput
+
+      # الخطوة الأخيرة هي فقط نشر التحديثات إلى Render مباشرة عبر GitHub
+      - name: Deploy to Render
+        run: |
+          echo "Deployment is automatically managed by Render. No need for git push."
