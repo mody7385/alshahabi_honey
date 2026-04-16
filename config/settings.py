@@ -7,9 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # إعدادات الأمان
 SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key')  # استخدم متغير بيئي
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'  # تأكد من أنه False في بيئة الإنتاج
+DEBUG = os.environ.get('DEBUG', 'False') == 'False'  # تأكد من أنه False في بيئة الإنتاج
 
-ALLOWED_HOSTS = ['*']  # للسماح بكل النطاقات في حالة النشر
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', os.environ.get('RENDER_EXTERNAL_HOSTNAME')]  # للسماح بكل النطاقات في حالة النشر
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME'))
 
@@ -37,11 +37,10 @@ MIDDLEWARE = [
 
 # إعدادات قاعدة البيانات
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # إعدادات المزامنة في الإنتاج
