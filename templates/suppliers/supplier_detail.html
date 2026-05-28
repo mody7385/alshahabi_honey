@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل المورد{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ supplier.name }}</h2>
+    <p class="muted">تفاصيل حساب المورد.</p>
+
+    <div class="actions">
+        <a href="{% url 'supplier-purchase-create' %}" class="btn">إضافة شراء</a>
+        <a href="{% url 'supplier-payment-create' %}" class="btn">إضافة سداد</a>
+        <a href="{% url 'supplier-list' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المشتريات</div>
+            <div class="stat-number">{{ total_purchases }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي السداد</div>
+            <div class="stat-number">{{ total_payments }}</div>
+        </div>
+    </div>
+
+    <div class="col-4">
+        <div class="stat-card">
+            <div class="stat-title">المتبقي</div>
+            <div class="stat-number">{{ balance }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h3 class="section-title">مشتريات المورد</h3>
+
+    {% if purchases %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>الدبب</th>
+                        <th>الكيلوات</th>
+                        <th>الإجمالي</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in purchases %}
+                    <tr>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.quantity_dabba }}</td>
+                        <td>{{ item.quantity_kg }}</td>
+                        <td>{{ item.total_amount }}</td>
+                        <td>{{ item.purchase_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد مشتريات لهذا المورد.</p>
+    {% endif %}
+</div>
+
+<div class="panel-card">
+    <h3 class="section-title">سداد المورد</h3>
+
+    {% if payments %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المبلغ</th>
+                        <th>التاريخ</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in payments %}
+                    <tr>
+                        <td>{{ item.amount }}</td>
+                        <td>{{ item.payment_date }}</td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد سدادات لهذا المورد.</p>
+    {% endif %}
+</div>
+{% endblock %}

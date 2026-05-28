@@ -81,6 +81,14 @@ def manager_profit_center(request):
 
     total_expenses = expenses_qs.aggregate(total=Sum('amount')).get('total') or 0
     net_profit = gross_profit - total_expenses
+    warehouse_profits = Sale.objects.filter(
+    sale_date__date__range=[start_date, end_date]
+    ).values(
+    'warehouse__name'
+    ).annotate(
+    total_sales=Sum('total_amount'),
+    total_profit=Sum('profit_amount')
+    ).order_by('warehouse__name')
 
     context = {
         'profile': profile,
@@ -92,6 +100,7 @@ def manager_profit_center(request):
         'total_expenses': total_expenses,
         'net_profit': net_profit,
         'expenses': expenses_qs,
+        'warehouse_profits': warehouse_profits,
     }
     return render(request, 'finance/manager_profit_center.html', context)
 

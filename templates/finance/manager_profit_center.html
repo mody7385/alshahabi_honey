@@ -45,6 +45,36 @@
 </div>
 
 <div class="panel-card">
+    <h3 class="section-title">أرباح المخازن</h3>
+    <div class="soft-divider"></div>
+
+    {% if warehouse_profits %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المخزن</th>
+                        <th>إجمالي المبيعات</th>
+                        <th>إجمالي الربح</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in warehouse_profits %}
+                    <tr>
+                        <td>{{ item.warehouse__name }}</td>
+                        <td>{{ item.total_sales|default:"0" }}</td>
+                        <td>{{ item.total_profit|default:"0" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد أرباح مخازن ضمن هذه الفترة.</p>
+    {% endif %}
+</div>
+
+<div class="panel-card">
     <h3 class="section-title">المصاريف التشغيلية</h3>
     <div class="soft-divider"></div>
 

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}الموردون{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>الموردون</h2>
+    <p class="muted">إدارة الموردين والمشتريات والسداد.</p>
+
+    <div class="actions">
+        <a href="{% url 'supplier-create' %}" class="btn">إضافة مورد</a>
+        <a href="{% url 'supplier-purchase-create' %}" class="btn">إضافة شراء</a>
+        <a href="{% url 'supplier-payment-create' %}" class="btn">إضافة سداد</a>
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع للمدير</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if supplier_data %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المورد</th>
+                        <th>الجوال</th>
+                        <th>إجمالي المشتريات</th>
+                        <th>إجمالي السداد</th>
+                        <th>المتبقي</th>
+                        <th>الحالة</th>
+                        <th>التفاصيل</th>
+                        <th>تعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in supplier_data %}
+                    <tr>
+                        <td>{{ item.supplier.name }}</td>
+                        <td>{{ item.supplier.phone|default:"-" }}</td>
+                        <td>{{ item.total_purchases }}</td>
+                        <td>{{ item.total_payments }}</td>
+                        <td>{{ item.balance }}</td>
+                        <td>
+                            {% if item.supplier.is_active %}
+                                <span class="badge badge-success">نشط</span>
+                            {% else %}
+                                <span class="badge badge-danger">غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="{% url 'supplier-detail' item.supplier.pk %}">عرض</a></td>
+                        <td><a href="{% url 'supplier-update' item.supplier.pk %}">تعديل</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا يوجد موردون حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}
