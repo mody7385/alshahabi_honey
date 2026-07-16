@@ -7,6 +7,7 @@
     <h2>المخزون</h2>
     <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
     <div class="page-meta">عدد السجلات: {{ inventory_items|length }}</div>
+    <div class="page-meta">رأس مال البضاعة: {{ total_inventory_capital }}</div>
 
     <div class="actions">
         <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
@@ -24,6 +25,7 @@
                         <th>نوع العسل</th>
                         <th>الدبب الكاملة</th>
                         <th>الكيلو المفتوح</th>
+                        <th>رأس المال</th>
                         <th>آخر تحديث</th>
                         <th>إدارة المخزون</th>
                     </tr>
@@ -36,6 +38,7 @@
                         <td>{{ item.product.honey_type|default:"-" }}</td>
                         <td>{{ item.full_dabba_count }}</td>
                         <td>{{ item.open_kg }}</td>
+                        <td>{{ item.capital_value }}</td>
                         <td>{{ item.updated_at|date:"Y-m-d h:i A" }}</td>
                         <td>
                             <a href="{% url 'manager-inventory-adjust' item.pk %}">تعديل الكمية</a>

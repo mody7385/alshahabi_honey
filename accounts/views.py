@@ -1,6 +1,9 @@
+from datetime import date
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from customers.models import Customer
 from finance.models import WorkerAccountTransaction
@@ -96,16 +99,42 @@ def manager_sales_list(request):
     if not profile or profile.role != 'manager':
         return redirect('dashboard')
 
-    sales = Sale.objects.select_related(
+    today = timezone.localdate()
+    month_value = request.GET.get('month') or today.strftime('%Y-%m')
+    payment_type = request.GET.get('payment_type', '')
+
+    try:
+        year, month = [int(part) for part in month_value.split('-')]
+        start_date = date(year, month, 1)
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+    except (TypeError, ValueError):
+        month_value = today.strftime('%Y-%m')
+        start_date = today.replace(day=1)
+        end_date = date(today.year + 1, 1, 1) if today.month == 12 else date(today.year, today.month + 1, 1)
+
+    sales = Sale.objects.filter(
+        sale_date__date__gte=start_date,
+        sale_date__date__lt=end_date,
+    ).select_related(
         'worker',
         'customer',
         'product',
         'warehouse',
     ).order_by('-sale_date')
 
+    if payment_type:
+        sales = sales.filter(payment_type=payment_type)
+
     return render(request, 'accounts/manager_sales_list.html', {
         'profile': profile,
         'sales': sales,
+        'month_value': month_value,
+        'payment_type': payment_type,
+        'total_sales_amount': sales.aggregate(total=Sum('total_amount')).get('total') or 0,
+        'total_profit_amount': sales.aggregate(total=Sum('profit_amount')).get('total') or 0,
     })
 
 
@@ -216,11 +245,15 @@ def manager_products_list(request):
     if not profile or profile.role != 'manager':
         return redirect('dashboard')
 
+    show_inactive = request.GET.get('show_inactive') == '1'
     products = Product.objects.select_related('warehouse').order_by('warehouse__name', 'name')
+    if not show_inactive:
+        products = products.filter(is_active=True)
 
     return render(request, 'accounts/manager_products_list.html', {
         'profile': profile,
         'products': products,
+        'show_inactive': show_inactive,
     })
 
 
@@ -238,10 +271,12 @@ def manager_inventory_list(request):
         'product',
         'product__warehouse',
     ).order_by('product__warehouse__name', 'product__name')
+    total_inventory_capital = sum((item.capital_value() for item in inventory_items), Decimal('0'))
 
     return render(request, 'accounts/manager_inventory_list.html', {
         'profile': profile,
         'inventory_items': inventory_items,
+        'total_inventory_capital': total_inventory_capital,
     })
 @login_required
 def manager_reports(request):
@@ -542,3 +577,18 @@ def manager_inventory_adjust(request, pk):
         'inventory': inventory,
         'form': form,
     })
+
+
+@login_required
+def manager_product_deactivate(request, pk):
+    profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
+
+    if not profile or profile.role != 'manager':
+        return redirect('dashboard')
+
+    product = Product.objects.filter(pk=pk).first()
+    if product and request.method == 'POST':
+        product.is_active = False
+        product.save(update_fields=['is_active'])
+
+    return redirect('manager-products-list')

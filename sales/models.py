@@ -18,112 +18,103 @@ def money(value):
     return Decimal(value).quantize(MONEY_STEP, rounding=ROUND_HALF_UP)
 
 
-class Sale(models.Model):
+class SaleBatch(models.Model):
     PAYMENT_CHOICES = [
         ('cash', 'نقد'),
         ('transfer', 'حوالة'),
         ('deferred', 'آجل'),
     ]
 
-    warehouse = models.ForeignKey(
-        Warehouse,
-        on_delete=models.PROTECT,
-        verbose_name='المخزن'
-    )
-
-    worker = models.ForeignKey(
-        WorkerProfile,
-        on_delete=models.PROTECT,
-        verbose_name='العامل'
-    )
-
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, verbose_name='المخزن')
+    worker = models.ForeignKey(WorkerProfile, on_delete=models.PROTECT, verbose_name='العامل')
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        verbose_name='العميل'
+        verbose_name='العميل',
+    )
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='نوع الدفع')
+    notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ البيع')
+
+    class Meta:
+        verbose_name = 'عملية بيع'
+        verbose_name_plural = 'عمليات البيع'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.worker.full_name} - {self.get_payment_type_display()} - {self.created_at:%Y-%m-%d}"
+
+    def total_amount(self):
+        return sum((sale.total_amount for sale in self.sales.all()), Decimal('0'))
+
+    def total_profit(self):
+        return sum((sale.profit_amount for sale in self.sales.all()), Decimal('0'))
+
+
+class Sale(models.Model):
+    PAYMENT_CHOICES = SaleBatch.PAYMENT_CHOICES
+
+    batch = models.ForeignKey(
+        SaleBatch,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='sales',
+        verbose_name='عملية البيع',
     )
 
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.PROTECT,
-        verbose_name='المنتج'
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, verbose_name='المخزن')
+    worker = models.ForeignKey(WorkerProfile, on_delete=models.PROTECT, verbose_name='العامل')
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name='العميل',
     )
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='المنتج')
 
-    quantity_dabba = models.PositiveIntegerField(
+    quantity_dabba = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
         default=0,
-        verbose_name='عدد الدبب'
+        verbose_name='عدد الدبب',
     )
-
     price_per_dabba = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name='سعر الدبة'
+        verbose_name='سعر الدبة',
     )
-
     quantity_kg = models.DecimalField(
-        max_digits=6,
+        max_digits=8,
         decimal_places=2,
         default=0,
-        verbose_name='عدد الكيلوات'
+        verbose_name='عدد الكيلوات',
     )
-
     price_per_kg = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        verbose_name='سعر الكيلو'
+        verbose_name='سعر الكيلو',
     )
-
-    payment_type = models.CharField(
-        max_length=20,
-        choices=PAYMENT_CHOICES,
-        verbose_name='نوع الدفع'
-    )
-
-    total_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0,
-        verbose_name='إجمالي البيع'
-    )
-
-    total_cost = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0,
-        verbose_name='إجمالي التكلفة'
-    )
-
-    profit_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0,
-        verbose_name='الربح'
-    )
-
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='نوع الدفع')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='إجمالي البيع')
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='إجمالي التكلفة')
+    profit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='الربح')
     worker_cash_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0,
-        verbose_name='النقد المستلم على العامل'
+        verbose_name='النقد المستلم على العامل',
     )
-
-    notes = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='ملاحظات'
-    )
-
-    sale_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='تاريخ البيع'
-    )
+    notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
+    sale_date = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ البيع')
 
     class Meta:
-        verbose_name = 'عملية بيع'
+        verbose_name = 'سطر بيع'
         verbose_name_plural = 'المبيعات'
         ordering = ['-sale_date']
 
@@ -134,9 +125,6 @@ class Sale(models.Model):
         return (Decimal(self.quantity_dabba) * DABBA_KG) + Decimal(self.quantity_kg)
 
     def clean(self):
-        if self.payment_type == 'deferred' and not self.customer_id:
-            raise ValidationError('في البيع الآجل يجب اختيار العميل.')
-
         if self.quantity_dabba == 0 and self.quantity_kg == 0:
             raise ValidationError('يجب إدخال كمية مباعة.')
 
@@ -146,13 +134,11 @@ class Sale(models.Model):
         if self.quantity_kg > 0 and self.price_per_kg <= 0:
             raise ValidationError('يجب إدخال سعر الكيلو عند البيع بالكيلو.')
 
-        if self.worker_id:
-            if not self.worker.warehouse:
-                raise ValidationError('العامل غير مربوط بمخزن.')
+        if self.worker_id and not self.worker.warehouse:
+            raise ValidationError('العامل غير مربوط بمخزن.')
 
-        if self.worker_id and self.product_id:
-            if self.worker.warehouse != self.product.warehouse:
-                raise ValidationError('هذا المنتج لا يتبع مخزن العامل.')
+        if self.worker_id and self.product_id and self.worker.warehouse != self.product.warehouse:
+            raise ValidationError('هذا المنتج لا يتبع مخزن العامل.')
 
     def _restore_old_inventory(self):
         if not self.pk:
@@ -185,7 +171,7 @@ class Sale(models.Model):
                     'transaction_type': 'sale_cash',
                     'amount': self.worker_cash_amount,
                     'notes': f'بيع نقدي - {self.product.name}',
-                }
+                },
             )
         else:
             WorkerAccountTransaction.objects.filter(sale=self).delete()
@@ -197,17 +183,12 @@ class Sale(models.Model):
 
         dabba_sales_total = Decimal(self.quantity_dabba) * Decimal(self.price_per_dabba)
         kg_sales_total = Decimal(self.quantity_kg) * Decimal(self.price_per_kg)
-
         self.total_amount = money(dabba_sales_total + kg_sales_total)
 
         total_kg = self.get_total_kg()
         self.total_cost = money(total_kg * Decimal(self.product.purchase_price_per_kg))
         self.profit_amount = money(self.total_amount - self.total_cost)
-
-        if self.payment_type == 'cash':
-            self.worker_cash_amount = money(self.total_amount)
-        else:
-            self.worker_cash_amount = money(Decimal('0'))
+        self.worker_cash_amount = money(self.total_amount) if self.payment_type == 'cash' else money(Decimal('0'))
 
         self.full_clean()
 

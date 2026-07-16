@@ -155,3 +155,51 @@ def supplier_payment_create(request):
         'page_title': 'إضافة سداد لمورد',
         'submit_label': 'حفظ السداد',
     })
+
+
+@login_required
+def supplier_purchase_update(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    purchase = get_object_or_404(SupplierPurchase, pk=pk)
+
+    if request.method == 'POST':
+        form = SupplierPurchaseForm(request.POST, instance=purchase)
+        if form.is_valid():
+            form.save()
+            return redirect('supplier-detail', pk=purchase.supplier_id)
+    else:
+        form = SupplierPurchaseForm(instance=purchase)
+
+    return render(request, 'suppliers/supplier_purchase_form.html', {
+        'profile': profile,
+        'form': form,
+        'page_title': 'تعديل شراء من مورد',
+        'submit_label': 'حفظ التعديل',
+    })
+
+
+@login_required
+def supplier_payment_update(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    payment = get_object_or_404(SupplierPayment, pk=pk)
+
+    if request.method == 'POST':
+        form = SupplierPaymentForm(request.POST, instance=payment)
+        if form.is_valid():
+            form.save()
+            return redirect('supplier-detail', pk=payment.supplier_id)
+    else:
+        form = SupplierPaymentForm(instance=payment)
+
+    return render(request, 'suppliers/supplier_payment_form.html', {
+        'profile': profile,
+        'form': form,
+        'page_title': 'تعديل سداد مورد',
+        'submit_label': 'حفظ التعديل',
+    })

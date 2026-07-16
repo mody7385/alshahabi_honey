@@ -10,6 +10,11 @@
 
     <div class="actions">
         <a href="{% url 'manager-product-create' %}" class="btn">إضافة منتج</a>
+        {% if show_inactive %}
+            <a href="{% url 'manager-products-list' %}" class="btn btn-secondary">إخفاء غير النشطة</a>
+        {% else %}
+            <a href="{% url 'manager-products-list' %}?show_inactive=1" class="btn btn-secondary">عرض غير النشطة</a>
+        {% endif %}
         <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
     </div>
 </div>
@@ -28,6 +33,7 @@
                         <th>سعر البيع للكيلو</th>
                         <th>الحالة</th>
                         <th>التعديل</th>
+                        <th>الإخفاء</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,8 +52,16 @@
                                 <span class="badge badge-danger">غير نشط</span>
                             {% endif %}
                         </td>
+                        <td><a href="{% url 'manager-product-update' product.pk %}">تعديل</a></td>
                         <td>
-                            <a href="{% url 'manager-product-update' product.pk %}">تعديل</a>
+                            {% if product.is_active %}
+                            <form method="post" action="{% url 'manager-product-deactivate' product.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary">إخفاء</button>
+                            </form>
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

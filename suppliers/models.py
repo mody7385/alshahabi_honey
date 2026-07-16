@@ -25,7 +25,7 @@ class SupplierPurchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchases')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='supplier_purchases')
 
-    quantity_dabba = models.PositiveIntegerField(default=0, verbose_name='عدد الدبب')
+    quantity_dabba = models.DecimalField(max_digits=8, decimal_places=2, default=0, verbose_name='عدد الدبب')
     quantity_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='عدد الكيلوات')
 
     price_per_dabba = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='سعر الدبة')

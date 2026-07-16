@@ -4,12 +4,48 @@
 
 {% block content %}
 <div class="hero-card">
-    <h2>جميع المبيعات</h2>
+    <h2>المبيعات</h2>
     <p class="muted">هذه الصفحة خاصة بالمدير فقط.</p>
     <div class="page-meta">عدد العمليات: {{ sales|length }}</div>
 
+    <form method="get" class="grid" style="margin-top: 18px;">
+        <div class="col-4">
+            <label>الشهر</label>
+            <input type="month" name="month" value="{{ month_value }}" class="form-control">
+        </div>
+        <div class="col-4">
+            <label>نوع الدفع</label>
+            <select name="payment_type" class="form-control">
+                <option value="">الكل</option>
+                <option value="cash" {% if payment_type == 'cash' %}selected{% endif %}>نقد</option>
+                <option value="transfer" {% if payment_type == 'transfer' %}selected{% endif %}>حوالة</option>
+                <option value="deferred" {% if payment_type == 'deferred' %}selected{% endif %}>آجل</option>
+            </select>
+        </div>
+        <div class="col-4" style="align-self:end;">
+            <button type="submit" class="btn">عرض</button>
+            <a href="{% url 'manager-sales-list' %}" class="btn btn-secondary">الشهر الحالي</a>
+        </div>
+    </form>
+
     <div class="actions">
+        <a href="{% url 'manager-sales-list' %}?month={{ month_value }}&payment_type=deferred" class="btn btn-secondary">عملاء الآجل</a>
         <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع إلى لوحة المدير</a>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي المبيعات</div>
+            <div class="stat-number">{{ total_sales_amount }}</div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="stat-card">
+            <div class="stat-title">إجمالي الربح</div>
+            <div class="stat-number">{{ total_profit_amount }}</div>
+        </div>
     </div>
 </div>
 
@@ -39,15 +75,7 @@
                         <td>{{ sale.warehouse.name }}</td>
                         <td>{{ sale.product.name }}</td>
                         <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}-{% endif %}</td>
-                        <td>
-                            {% if sale.payment_type == 'cash' %}
-                                <span class="badge badge-success">نقد</span>
-                            {% elif sale.payment_type == 'transfer' %}
-                                <span class="badge badge-warning">حوالة</span>
-                            {% else %}
-                                <span class="badge badge-danger">آجل</span>
-                            {% endif %}
-                        </td>
+                        <td>{{ sale.get_payment_type_display }}</td>
                         <td>{{ sale.quantity_dabba }}</td>
                         <td>{{ sale.quantity_kg }}</td>
                         <td>{{ sale.total_amount }}</td>
@@ -60,7 +88,7 @@
             </table>
         </div>
     {% else %}
-        <p class="muted">لا توجد مبيعات حتى الآن.</p>
+        <p class="muted">لا توجد مبيعات ضمن هذا الاختيار.</p>
     {% endif %}
 </div>
 {% endblock %}

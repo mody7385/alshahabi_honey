@@ -10,13 +10,15 @@ class ManagerInventoryAdjustForm(forms.Form):
 
     operation_type = forms.ChoiceField(
         choices=OPERATION_CHOICES,
-        label='نوع العملية'
+        label='نوع العملية',
     )
 
-    quantity_dabba = forms.IntegerField(
+    quantity_dabba = forms.DecimalField(
         min_value=0,
+        max_digits=8,
+        decimal_places=2,
         initial=0,
-        label='عدد الدبب'
+        label='عدد الدبب',
     )
 
     quantity_kg = forms.DecimalField(
@@ -24,7 +26,7 @@ class ManagerInventoryAdjustForm(forms.Form):
         max_digits=8,
         decimal_places=2,
         initial=0,
-        label='عدد الكيلوات'
+        label='عدد الكيلوات',
     )
 
     def __init__(self, *args, **kwargs):
@@ -32,6 +34,7 @@ class ManagerInventoryAdjustForm(forms.Form):
 
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
+        self.fields['quantity_dabba'].widget.attrs['step'] = '0.5'
 
     def clean(self):
         cleaned_data = super().clean()

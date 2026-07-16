@@ -9,64 +9,81 @@
 </div>
 
 <div class="panel-card">
-    {% if form.non_field_errors %}
-        <div class="alert-error">
-            {{ form.non_field_errors }}
-        </div>
-    {% endif %}
-
     <form method="post">
         {% csrf_token %}
 
+        {% if header_form.non_field_errors %}
+            <div class="alert-error">{{ header_form.non_field_errors }}</div>
+        {% endif %}
+        {% if formset.non_form_errors %}
+            <div class="alert-error">{{ formset.non_form_errors }}</div>
+        {% endif %}
+
         <div class="grid">
             <div class="col-6">
-                <label>اسم العميل (اختياري)</label>
-                {{ form.customer_name }}
+                <label>اسم العميل</label>
+                {{ header_form.customer_name }}
             </div>
-
             <div class="col-6">
-                <label>رقم جوال العميل (اختياري)</label>
-                {{ form.customer_phone }}
+                <label>رقم جوال العميل</label>
+                {{ header_form.customer_phone }}
             </div>
-
-            <div class="col-6">
-                <label>المنتج</label>
-                {{ form.product }}
-            </div>
-
-            <div class="col-3">
-                <label>عدد الدبب</label>
-                {{ form.quantity_dabba }}
-            </div>
-
-            <div class="col-3">
-                <label>سعر الدبة</label>
-                {{ form.price_per_dabba }}
-            </div>
-
-            <div class="col-3">
-                <label>عدد الكيلوات</label>
-                {{ form.quantity_kg }}
-            </div>
-
-            <div class="col-3">
-                <label>سعر الكيلو</label>
-                {{ form.price_per_kg }}
-            </div>
-
             <div class="col-6">
                 <label>نوع الدفع</label>
-                {{ form.payment_type }}
+                {{ header_form.payment_type }}
             </div>
-
             <div class="col-12">
                 <label>ملاحظات</label>
-                {{ form.notes }}
+                {{ header_form.notes }}
             </div>
         </div>
 
+        <div class="soft-divider"></div>
+        {{ formset.management_form }}
+
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>عدد الدبب</th>
+                        <th>سعر الدبة</th>
+                        <th>الكيلوات</th>
+                        <th>سعر الكيلو</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset %}
+                    <tr>
+                        <td>
+                            {{ form.product }}
+                            {{ form.product.errors }}
+                        </td>
+                        <td>
+                            {{ form.quantity_dabba }}
+                            {{ form.quantity_dabba.errors }}
+                        </td>
+                        <td>
+                            {{ form.price_per_dabba }}
+                            {{ form.price_per_dabba.errors }}
+                        </td>
+                        <td>
+                            {{ form.quantity_kg }}
+                            {{ form.quantity_kg.errors }}
+                        </td>
+                        <td>
+                            {{ form.price_per_kg }}
+                            {{ form.price_per_kg.errors }}
+                            {{ form.non_field_errors }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
         <div class="form-note">
-            أدخل اسم العميل أو رقمه فقط إذا توفر. في البيع الآجل يجب إدخال اسم أو رقم عميل.
+            يمكن إدخال 0.5 في عدد الدبب. في البيع الآجل يجب إدخال اسم العميل أو رقم الجوال.
         </div>
 
         <div class="actions">

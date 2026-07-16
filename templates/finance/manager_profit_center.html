@@ -6,14 +6,30 @@
 <div class="hero-card">
     <h2>الأرباح والمصاريف</h2>
     <p class="muted">الفترة الحالية: {{ period_label }}</p>
-    <div class="page-meta">{{ start_date }} → {{ end_date }}</div>
+    <div class="page-meta">{{ start_date }} إلى {{ end_date }}</div>
 
     <div class="actions">
         <a href="{% url 'manager-profit-center' %}?period=today" class="btn btn-secondary">اليوم</a>
         <a href="{% url 'manager-profit-center' %}?period=week" class="btn btn-secondary">الأسبوع</a>
         <a href="{% url 'manager-profit-center' %}?period=month" class="btn btn-secondary">الشهر</a>
+        <a href="{% url 'manager-profit-center' %}?period=last_month" class="btn btn-secondary">الشهر الماضي</a>
         <a href="{% url 'manager-profit-center' %}?period=year" class="btn btn-secondary">السنة</a>
+        <a href="{% url 'manager-profit-center' %}?period=last_year" class="btn btn-secondary">السنة الماضية</a>
     </div>
+
+    <form method="get" class="grid" style="margin-top: 18px;">
+        <div class="col-4">
+            <label>من تاريخ</label>
+            <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control">
+        </div>
+        <div class="col-4">
+            <label>إلى تاريخ</label>
+            <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control">
+        </div>
+        <div class="col-4" style="align-self:end;">
+            <button type="submit" class="btn">عرض الفترة</button>
+        </div>
+    </form>
 
     <div class="actions">
         <a href="{% url 'manager-operating-expense-create' %}" class="btn">إضافة مصروف</a>
@@ -22,21 +38,25 @@
 </div>
 
 <div class="grid">
-    <div class="col-4">
+    <div class="col-3">
         <div class="stat-card">
-            <div class="stat-title">إجمالي ربح المبيعات</div>
+            <div class="stat-title">إجمالي المبيعات</div>
+            <div class="stat-number">{{ total_sales }}</div>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="stat-card">
+            <div class="stat-title">ربح المبيعات</div>
             <div class="stat-number">{{ gross_profit }}</div>
         </div>
     </div>
-
-    <div class="col-4">
+    <div class="col-3">
         <div class="stat-card">
-            <div class="stat-title">إجمالي المصاريف</div>
+            <div class="stat-title">المصاريف</div>
             <div class="stat-number">{{ total_expenses }}</div>
         </div>
     </div>
-
-    <div class="col-4">
+    <div class="col-3">
         <div class="stat-card">
             <div class="stat-title">الربح النهائي</div>
             <div class="stat-number">{{ net_profit }}</div>

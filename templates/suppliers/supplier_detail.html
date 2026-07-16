@@ -21,14 +21,12 @@
             <div class="stat-number">{{ total_purchases }}</div>
         </div>
     </div>
-
     <div class="col-4">
         <div class="stat-card">
             <div class="stat-title">إجمالي السداد</div>
             <div class="stat-number">{{ total_payments }}</div>
         </div>
     </div>
-
     <div class="col-4">
         <div class="stat-card">
             <div class="stat-title">المتبقي</div>
@@ -50,6 +48,7 @@
                         <th>الكيلوات</th>
                         <th>الإجمالي</th>
                         <th>التاريخ</th>
+                        <th>التعديل</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,6 +59,7 @@
                         <td>{{ item.quantity_kg }}</td>
                         <td>{{ item.total_amount }}</td>
                         <td>{{ item.purchase_date }}</td>
+                        <td><a href="{% url 'supplier-purchase-update' item.pk %}">تعديل</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -81,6 +81,7 @@
                         <th>المبلغ</th>
                         <th>التاريخ</th>
                         <th>ملاحظات</th>
+                        <th>التعديل</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,6 +90,7 @@
                         <td>{{ item.amount }}</td>
                         <td>{{ item.payment_date }}</td>
                         <td>{{ item.notes|default:"-" }}</td>
+                        <td><a href="{% url 'supplier-payment-update' item.pk %}">تعديل</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

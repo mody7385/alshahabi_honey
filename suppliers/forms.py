@@ -41,6 +41,7 @@ class SupplierPurchaseForm(forms.ModelForm):
 
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
+        self.fields['quantity_dabba'].widget.attrs['step'] = '0.5'
 
 
 class SupplierPaymentForm(forms.ModelForm):

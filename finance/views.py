@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
@@ -21,7 +21,7 @@ def manager_add_worker_transaction(request, worker_pk):
     worker = get_object_or_404(
         WorkerProfile.objects.select_related('warehouse', 'user'),
         pk=worker_pk,
-        role='worker'
+        role='worker',
     )
 
     if request.method == 'POST':
@@ -35,16 +35,23 @@ def manager_add_worker_transaction(request, worker_pk):
     else:
         form = ManagerWorkerTransactionForm()
 
-    context = {
+    return render(request, 'finance/manager_add_worker_transaction.html', {
         'profile': profile,
         'worker': worker,
         'form': form,
-    }
-    return render(request, 'finance/manager_add_worker_transaction.html', context)
+    })
 
 
-def get_period_range(period):
+def get_period_range(period, request):
     today = timezone.localdate()
+
+    custom_start = request.GET.get('start_date')
+    custom_end = request.GET.get('end_date')
+    if custom_start and custom_end:
+        try:
+            return date.fromisoformat(custom_start), date.fromisoformat(custom_end), 'فترة مخصصة'
+        except ValueError:
+            pass
 
     if period == 'today':
         return today, today, 'اليوم'
@@ -54,11 +61,18 @@ def get_period_range(period):
         return start, today, 'هذا الأسبوع'
 
     if period == 'year':
-        start = today.replace(month=1, day=1)
-        return start, today, 'هذه السنة'
+        return today.replace(month=1, day=1), today, 'هذه السنة'
 
-    start = today.replace(day=1)
-    return start, today, 'هذا الشهر'
+    if period == 'last_month':
+        first_this_month = today.replace(day=1)
+        last_month_end = first_this_month - timedelta(days=1)
+        return last_month_end.replace(day=1), last_month_end, 'الشهر الماضي'
+
+    if period == 'last_year':
+        year = today.year - 1
+        return date(year, 1, 1), date(year, 12, 31), 'السنة الماضية'
+
+    return today.replace(day=1), today, 'هذا الشهر'
 
 
 @login_required
@@ -69,40 +83,36 @@ def manager_profit_center(request):
         return redirect('dashboard')
 
     period = request.GET.get('period', 'month')
-    start_date, end_date, period_label = get_period_range(period)
+    start_date, end_date, period_label = get_period_range(period, request)
 
-    gross_profit = Sale.objects.filter(
-        sale_date__date__range=[start_date, end_date]
-    ).aggregate(total=Sum('profit_amount')).get('total') or 0
+    sales_qs = Sale.objects.filter(sale_date__date__range=[start_date, end_date])
+    gross_profit = sales_qs.aggregate(total=Sum('profit_amount')).get('total') or 0
+    total_sales = sales_qs.aggregate(total=Sum('total_amount')).get('total') or 0
 
     expenses_qs = OperatingExpense.objects.filter(
-        expense_date__range=[start_date, end_date]
+        expense_date__range=[start_date, end_date],
     ).order_by('-expense_date', '-created_at')
 
     total_expenses = expenses_qs.aggregate(total=Sum('amount')).get('total') or 0
     net_profit = gross_profit - total_expenses
-    warehouse_profits = Sale.objects.filter(
-    sale_date__date__range=[start_date, end_date]
-    ).values(
-    'warehouse__name'
-    ).annotate(
-    total_sales=Sum('total_amount'),
-    total_profit=Sum('profit_amount')
+    warehouse_profits = sales_qs.values('warehouse__name').annotate(
+        total_sales=Sum('total_amount'),
+        total_profit=Sum('profit_amount'),
     ).order_by('warehouse__name')
 
-    context = {
+    return render(request, 'finance/manager_profit_center.html', {
         'profile': profile,
         'period': period,
         'period_label': period_label,
         'start_date': start_date,
         'end_date': end_date,
         'gross_profit': gross_profit,
+        'total_sales': total_sales,
         'total_expenses': total_expenses,
         'net_profit': net_profit,
         'expenses': expenses_qs,
         'warehouse_profits': warehouse_profits,
-    }
-    return render(request, 'finance/manager_profit_center.html', context)
+    })
 
 
 @login_required
