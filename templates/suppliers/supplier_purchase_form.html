@@ -12,6 +12,10 @@
     <form method="post">
         {% csrf_token %}
 
+        {% if form.non_field_errors %}
+            <div class="alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
         <div class="grid">
             <div class="col-6">
                 <label>المورد</label>
@@ -48,6 +52,13 @@
                 {{ form.purchase_date }}
             </div>
 
+            <div class="col-6">
+                <label>
+                    {{ form.add_to_inventory }}
+                    إضافة الكمية للمخزون
+                </label>
+            </div>
+
             <div class="col-12">
                 <label>ملاحظات</label>
                 {{ form.notes }}
@@ -55,7 +66,7 @@
         </div>
 
         <div class="form-note">
-            سيتم حساب إجمالي الشراء تلقائيًا من عدد الدبب والكيلوات والأسعار.
+            سيتم حساب إجمالي الشراء تلقائيًا. إذا اخترت إضافة الكمية للمخزون سيتم تحديث مخزون المنتج مباشرة.
         </div>
 
         <div class="actions">

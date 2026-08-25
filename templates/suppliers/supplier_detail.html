@@ -47,6 +47,7 @@
                         <th>الدبب</th>
                         <th>الكيلوات</th>
                         <th>الإجمالي</th>
+                        <th>المخزون</th>
                         <th>التاريخ</th>
                         <th>التعديل</th>
                     </tr>
@@ -58,6 +59,7 @@
                         <td>{{ item.quantity_dabba }}</td>
                         <td>{{ item.quantity_kg }}</td>
                         <td>{{ item.total_amount }}</td>
+                        <td>{% if item.add_to_inventory %}تمت الإضافة{% else %}بدون إضافة{% endif %}</td>
                         <td>{{ item.purchase_date }}</td>
                         <td><a href="{% url 'supplier-purchase-update' item.pk %}">تعديل</a></td>
                     </tr>

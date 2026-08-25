@@ -264,12 +264,14 @@ def manager_inventory_list(request):
     if not profile or profile.role != 'manager':
         return redirect('dashboard')
 
-    for product in Product.objects.all():
+    for product in Product.objects.filter(is_active=True):
         Inventory.objects.get_or_create(product=product)
 
     inventory_items = Inventory.objects.select_related(
         'product',
         'product__warehouse',
+    ).filter(
+        product__is_active=True,
     ).order_by('product__warehouse__name', 'product__name')
     total_inventory_capital = sum((item.capital_value() for item in inventory_items), Decimal('0'))
 
@@ -364,6 +366,55 @@ def manager_reports(request):
         'top_workers': top_workers,
         'top_products': top_products,
     })
+@login_required
+def manager_reports(request):
+    profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
+
+    if not profile or profile.role != 'manager':
+        return redirect('dashboard')
+
+    total_sales_amount = Sale.objects.aggregate(total=Sum('total_amount')).get('total') or 0
+    total_cash_sales = Sale.objects.filter(payment_type='cash').aggregate(total=Sum('total_amount')).get('total') or 0
+    total_transfer_sales = Sale.objects.filter(payment_type='transfer').aggregate(total=Sum('total_amount')).get('total') or 0
+    total_deferred_sales = Sale.objects.filter(payment_type='deferred').aggregate(total=Sum('total_amount')).get('total') or 0
+
+    top_workers = (
+        Sale.objects
+        .values('worker__full_name')
+        .annotate(
+            total_sales=Sum('total_amount'),
+            sales_count=Count('id')
+        )
+        .order_by('-total_sales')[:5]
+    )
+
+    product_sales_report = []
+    for product in Product.objects.filter(is_active=True).select_related('warehouse').order_by('warehouse__name', 'name'):
+        product_sales = Sale.objects.filter(product=product).aggregate(
+            sales_count=Count('id'),
+            total_dabba=Sum('quantity_dabba'),
+            total_kg=Sum('quantity_kg'),
+            total_sales=Sum('total_amount'),
+        )
+        product_sales_report.append({
+            'product': product,
+            'sales_count': product_sales.get('sales_count') or 0,
+            'total_dabba': product_sales.get('total_dabba') or 0,
+            'total_kg': product_sales.get('total_kg') or 0,
+            'total_sales': product_sales.get('total_sales') or 0,
+        })
+
+    return render(request, 'accounts/manager_reports.html', {
+        'profile': profile,
+        'total_sales_amount': total_sales_amount,
+        'total_cash_sales': total_cash_sales,
+        'total_transfer_sales': total_transfer_sales,
+        'total_deferred_sales': total_deferred_sales,
+        'top_workers': top_workers,
+        'product_sales_report': product_sales_report,
+    })
+
+
 @login_required
 def manager_product_create(request):
     profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()

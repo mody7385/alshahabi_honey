@@ -73,14 +73,15 @@
 </div>
 
 <div class="panel-card">
-    <h3 class="section-title">أكثر المنتجات مبيعًا</h3>
+    <h3 class="section-title">تقرير مبيعات المنتجات النشطة</h3>
     <div class="soft-divider"></div>
 
-    {% if top_products %}
+    {% if product_sales_report %}
         <div style="overflow-x:auto;">
             <table class="custom-table">
                 <thead>
                     <tr>
+                        <th>المخزن</th>
                         <th>المنتج</th>
                         <th>عدد العمليات</th>
                         <th>إجمالي الدبب</th>
@@ -89,9 +90,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in top_products %}
+                    {% for item in product_sales_report %}
                     <tr>
-                        <td>{{ item.product__name }}</td>
+                        <td>{{ item.product.warehouse.name }}</td>
+                        <td>{{ item.product.name }}</td>
                         <td>{{ item.sales_count }}</td>
                         <td>{{ item.total_dabba|default:"0" }}</td>
                         <td>{{ item.total_kg|default:"0" }}</td>
@@ -102,7 +104,7 @@
             </table>
         </div>
     {% else %}
-        <p class="muted">لا توجد بيانات منتجات مباعة حتى الآن.</p>
+        <p class="muted">لا توجد منتجات نشطة حتى الآن.</p>
     {% endif %}
 </div>
 {% endblock %}

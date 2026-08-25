@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -122,8 +123,11 @@ def supplier_purchase_create(request):
     if request.method == 'POST':
         form = SupplierPurchaseForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('supplier-list')
+            try:
+                form.save()
+                return redirect('supplier-list')
+            except ValidationError as error:
+                form.add_error(None, error)
     else:
         form = SupplierPurchaseForm()
 
@@ -168,8 +172,11 @@ def supplier_purchase_update(request, pk):
     if request.method == 'POST':
         form = SupplierPurchaseForm(request.POST, instance=purchase)
         if form.is_valid():
-            form.save()
-            return redirect('supplier-detail', pk=purchase.supplier_id)
+            try:
+                form.save()
+                return redirect('supplier-detail', pk=purchase.supplier_id)
+            except ValidationError as error:
+                form.add_error(None, error)
     else:
         form = SupplierPurchaseForm(instance=purchase)
 

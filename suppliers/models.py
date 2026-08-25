@@ -1,6 +1,10 @@
-from django.db import models
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.utils import timezone
 
+from inventory.models import DABBA_KG, Inventory
 from products.models import Product
 
 
@@ -32,6 +36,7 @@ class SupplierPurchase(models.Model):
     price_per_kg = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='سعر الكيلو')
 
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0, verbose_name='إجمالي الشراء')
+    add_to_inventory = models.BooleanField(default=False, verbose_name='إضافة الكمية للمخزون')
     purchase_date = models.DateField(default=timezone.localdate, verbose_name='تاريخ الشراء')
     notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -41,11 +46,53 @@ class SupplierPurchase(models.Model):
         verbose_name_plural = 'مشتريات الموردين'
         ordering = ['-purchase_date', '-created_at']
 
+    def total_kg(self):
+        return (Decimal(self.quantity_dabba) * DABBA_KG) + Decimal(self.quantity_kg)
+
+    def _apply_inventory_delta(self, delta_kg):
+        if delta_kg == 0:
+            return
+
+        inventory, _ = Inventory.objects.get_or_create(product=self.product)
+        new_total = inventory.total_kg() + Decimal(delta_kg)
+
+        if new_total < 0:
+            raise ValidationError('لا يمكن تعديل الشراء لأن الكمية المطلوب خصمها أكبر من المخزون الحالي.')
+
+        inventory.set_from_total_kg(new_total)
+        inventory.save()
+
+    @transaction.atomic
     def save(self, *args, **kwargs):
+        old_purchase = None
+        if self.pk:
+            old_purchase = SupplierPurchase.objects.filter(pk=self.pk).select_related('product').first()
+
         dabba_total = self.quantity_dabba * self.price_per_dabba
         kg_total = self.quantity_kg * self.price_per_kg
         self.total_amount = dabba_total + kg_total
+
         super().save(*args, **kwargs)
+
+        old_inventory_kg = old_purchase.total_kg() if old_purchase and old_purchase.add_to_inventory else Decimal('0')
+        new_inventory_kg = self.total_kg() if self.add_to_inventory else Decimal('0')
+
+        if old_purchase and old_purchase.product_id != self.product_id and old_inventory_kg:
+            old_inventory = Inventory.objects.get(product=old_purchase.product)
+            old_total = old_inventory.total_kg() - old_inventory_kg
+            if old_total < 0:
+                raise ValidationError('لا يمكن تعديل الشراء لأن الكمية القديمة أكبر من المخزون الحالي.')
+            old_inventory.set_from_total_kg(old_total)
+            old_inventory.save()
+            self._apply_inventory_delta(new_inventory_kg)
+        else:
+            self._apply_inventory_delta(new_inventory_kg - old_inventory_kg)
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        if self.add_to_inventory:
+            self._apply_inventory_delta(-self.total_kg())
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f'{self.supplier.name} - {self.product.name} - {self.total_amount}'
