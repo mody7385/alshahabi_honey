@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}الحسابات المالية{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>الحسابات المالية</h2>
+    <p class="muted">الصناديق والبنوك والمحافظ والعمال.</p>
+    <div class="actions">
+        <a href="{% url 'accounting-account-create' %}" class="btn">إضافة حساب</a>
+        <a href="{% url 'accounting-manual-adjustment' %}" class="btn btn-secondary">إضافة حركة مالية</a>
+        <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if accounts %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>الحساب</th>
+                        <th>النوع</th>
+                        <th>الرصيد الافتتاحي</th>
+                        <th>الرصيد الحالي</th>
+                        <th>الحالة</th>
+                        <th>الكشف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in accounts %}
+                    <tr>
+                        <td>{{ account.name }}</td>
+                        <td>{{ account.get_account_type_display }}</td>
+                        <td>{{ account.opening_balance }}</td>
+                        <td>{{ account.current_balance }}</td>
+                        <td>{% if account.is_active %}نشط{% else %}مخفي{% endif %}</td>
+                        <td><a href="{% url 'accounting-account-detail' account.pk %}">عرض</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد حسابات مالية حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}

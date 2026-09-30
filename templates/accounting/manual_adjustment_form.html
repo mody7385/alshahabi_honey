@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+</div>
+
+<div class="panel-card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid">
+            <div class="col-6">
+                <label>الحساب المالي</label>
+                {{ form.account }}
+            </div>
+            <div class="col-6">
+                <label>نوع الحركة</label>
+                {{ form.direction }}
+            </div>
+            <div class="col-6">
+                <label>المبلغ</label>
+                {{ form.amount }}
+            </div>
+            <div class="col-6">
+                <label>التصنيف</label>
+                {{ form.category }}
+            </div>
+            <div class="col-12">
+                <label>الوصف</label>
+                {{ form.description }}
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'accounting-account-list' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

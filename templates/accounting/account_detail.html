@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}كشف الحساب{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ account.name }}</h2>
+    <p class="muted">{{ account.get_account_type_display }}</p>
+    <div class="page-meta">الرصيد الحالي: {{ account.current_balance }}</div>
+    <div class="actions">
+        <a href="{% url 'accounting-account-update' account.pk %}" class="btn">تعديل الحساب</a>
+        <a href="{% url 'accounting-manual-adjustment' %}" class="btn btn-secondary">إضافة حركة</a>
+        <a href="{% url 'accounting-account-list' %}" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>
+
+<div class="panel-card">
+    {% if entries %}
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الاتجاه</th>
+                        <th>المبلغ</th>
+                        <th>التصنيف</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.occurred_at|date:"Y-m-d h:i A" }}</td>
+                        <td>{{ entry.get_direction_display }}</td>
+                        <td>{{ entry.amount }}</td>
+                        <td>{{ entry.category }}</td>
+                        <td>{{ entry.description }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">لا توجد حركات لهذا الحساب حتى الآن.</p>
+    {% endif %}
+</div>
+{% endblock %}
