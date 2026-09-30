@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'finance',
     'core',
     'suppliers.apps.SuppliersConfig',
+    'accounting.apps.AccountingConfig',
 ]
 
 MIDDLEWARE = [

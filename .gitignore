@@ -12,3 +12,5 @@ staticfiles/
 .idea/
 
 *.log
+
+.superpowers/
