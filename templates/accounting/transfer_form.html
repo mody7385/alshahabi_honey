@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>{{ page_title }}</h2>
+    <p class="muted">استخدمها للتحويل بين عامل أو صندوق أو بنك أو محفظة.</p>
+</div>
+
+<div class="panel-card">
+    <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>من حساب</label>
+                {{ form.source_account }}
+                {{ form.source_account.errors }}
+            </div>
+            <div class="col-6">
+                <label>إلى حساب</label>
+                {{ form.target_account }}
+                {{ form.target_account.errors }}
+            </div>
+            <div class="col-6">
+                <label>المبلغ</label>
+                {{ form.amount }}
+                {{ form.amount.errors }}
+            </div>
+            <div class="col-6">
+                <label>عمولة التحويل</label>
+                {{ form.fee_amount }}
+                {{ form.fee_amount.errors }}
+            </div>
+            <div class="col-12">
+                <label>الوصف</label>
+                {{ form.description }}
+                {{ form.description.errors }}
+            </div>
+        </div>
+
+        <div class="form-note">
+            العمولة تخصم من الحساب المرسل وتظهر كمصروف تشغيل.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">{{ submit_label }}</button>
+            <a href="{% url 'accounting-account-list' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

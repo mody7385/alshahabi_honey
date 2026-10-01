@@ -53,3 +53,39 @@ def reverse_entries(source_type: str, source_id: int) -> int:
     count = entries.count()
     entries.update(is_reversed=True)
     return count
+
+
+@transaction.atomic
+def post_transfer(transfer) -> None:
+    reverse_entries('money_transfer', transfer.pk)
+    post_entry(
+        account=transfer.source_account,
+        amount=transfer.amount,
+        direction='out',
+        category='transfer_out',
+        description=transfer.description,
+        source_type='money_transfer',
+        source_id=transfer.pk,
+        occurred_at=transfer.occurred_at,
+    )
+    post_entry(
+        account=transfer.target_account,
+        amount=transfer.amount,
+        direction='in',
+        category='transfer_in',
+        description=transfer.description,
+        source_type='money_transfer',
+        source_id=transfer.pk,
+        occurred_at=transfer.occurred_at,
+    )
+    if transfer.fee_amount > 0:
+        post_entry(
+            account=transfer.source_account,
+            amount=transfer.fee_amount,
+            direction='out',
+            category='transfer_fee',
+            description=f'عمولة تحويل - {transfer.description}',
+            source_type='money_transfer',
+            source_id=transfer.pk,
+            occurred_at=transfer.occurred_at,
+        )

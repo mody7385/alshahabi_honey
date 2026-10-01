@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from accounting.models import FinancialAccount
+from accounting.models import FinancialAccount, MoneyTransfer
 from accounting.services import post_entry, reverse_entries
 from accounts.models import WorkerProfile
 
@@ -75,3 +75,52 @@ class AccountingViewTests(TestCase):
         self.assertRedirects(response, reverse("accounting-account-detail", args=[account.pk]))
         account.refresh_from_db()
         self.assertEqual(account.current_balance(), Decimal("175.00"))
+
+    def test_manager_can_create_transfer_between_accounts(self):
+        source = FinancialAccount.objects.create(
+            name="محفظة",
+            account_type="wallet",
+            opening_balance=Decimal("1000.00"),
+        )
+        target = FinancialAccount.objects.create(
+            name="بنك",
+            account_type="bank",
+            opening_balance=Decimal("0.00"),
+        )
+
+        response = self.client.post(reverse("accounting-transfer-create"), {
+            "source_account": source.pk,
+            "target_account": target.pk,
+            "amount": "300.00",
+            "fee_amount": "5.00",
+            "description": "تحويل للبنك",
+        })
+
+        self.assertRedirects(response, reverse("accounting-account-detail", args=[source.pk]))
+        self.assertEqual(source.current_balance(), Decimal("695.00"))
+        self.assertEqual(target.current_balance(), Decimal("300.00"))
+
+
+class MoneyTransferTests(TestCase):
+    def test_transfer_moves_money_between_accounts_and_fee_counts_as_operating_expense(self):
+        source = FinancialAccount.objects.create(
+            name="Wallet",
+            account_type="wallet",
+            opening_balance=Decimal("1000.00"),
+        )
+        target = FinancialAccount.objects.create(
+            name="Bank",
+            account_type="bank",
+            opening_balance=Decimal("0.00"),
+        )
+
+        MoneyTransfer.objects.create(
+            source_account=source,
+            target_account=target,
+            amount=Decimal("500.00"),
+            fee_amount=Decimal("10.00"),
+            description="تحويل إلى البنك",
+        )
+
+        self.assertEqual(source.current_balance(), Decimal("490.00"))
+        self.assertEqual(target.current_balance(), Decimal("500.00"))

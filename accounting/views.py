@@ -2,8 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import WorkerProfile
-from .forms import FinancialAccountForm, ManualAdjustmentForm
-from .models import FinancialAccount
+from .forms import FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
+from .models import FinancialAccount, MoneyTransfer
 from .services import post_entry
 
 
@@ -118,4 +118,50 @@ def manual_adjustment(request):
         'form': form,
         'page_title': 'إضافة حركة مالية',
         'submit_label': 'حفظ الحركة',
+    })
+
+
+@login_required
+def transfer_create(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = MoneyTransferForm(request.POST)
+        if form.is_valid():
+            transfer = form.save()
+            return redirect('accounting-account-detail', pk=transfer.source_account_id)
+    else:
+        form = MoneyTransferForm()
+
+    return render(request, 'accounting/transfer_form.html', {
+        'profile': profile,
+        'form': form,
+        'page_title': 'تحويل بين الحسابات',
+        'submit_label': 'حفظ التحويل',
+    })
+
+
+@login_required
+def transfer_update(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    transfer = get_object_or_404(MoneyTransfer, pk=pk)
+
+    if request.method == 'POST':
+        form = MoneyTransferForm(request.POST, instance=transfer)
+        if form.is_valid():
+            transfer = form.save()
+            return redirect('accounting-account-detail', pk=transfer.source_account_id)
+    else:
+        form = MoneyTransferForm(instance=transfer)
+
+    return render(request, 'accounting/transfer_form.html', {
+        'profile': profile,
+        'form': form,
+        'page_title': 'تعديل تحويل',
+        'submit_label': 'حفظ التعديل',
     })

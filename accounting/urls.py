@@ -9,4 +9,6 @@ urlpatterns = [
     path('accounts/<int:pk>/', views.account_detail, name='accounting-account-detail'),
     path('accounts/<int:pk>/edit/', views.account_update, name='accounting-account-update'),
     path('adjustments/add/', views.manual_adjustment, name='accounting-manual-adjustment'),
+    path('transfers/add/', views.transfer_create, name='accounting-transfer-create'),
+    path('transfers/<int:pk>/edit/', views.transfer_update, name='accounting-transfer-update'),
 ]

@@ -88,3 +88,52 @@ class LedgerEntry(models.Model):
             raise ValidationError('اتجاه الحركة غير صحيح.')
         if self.amount <= 0:
             raise ValidationError('مبلغ الحركة يجب أن يكون أكبر من صفر.')
+
+
+class MoneyTransfer(models.Model):
+    source_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        related_name='outgoing_transfers',
+        verbose_name='من حساب',
+    )
+    target_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        related_name='incoming_transfers',
+        verbose_name='إلى حساب',
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='مبلغ التحويل')
+    fee_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0, verbose_name='عمولة التحويل')
+    description = models.CharField(max_length=250, verbose_name='الوصف')
+    occurred_at = models.DateTimeField(default=timezone.now, verbose_name='تاريخ التحويل')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'تحويل مالي'
+        verbose_name_plural = 'التحويلات المالية'
+        ordering = ['-occurred_at', '-created_at']
+
+    def __str__(self):
+        return f'{self.source_account.name} إلى {self.target_account.name} - {self.amount}'
+
+    def clean(self):
+        if self.source_account_id and self.target_account_id and self.source_account_id == self.target_account_id:
+            raise ValidationError('لا يمكن التحويل بين نفس الحساب.')
+        if self.amount <= 0:
+            raise ValidationError('مبلغ التحويل يجب أن يكون أكبر من صفر.')
+        if self.fee_amount < 0:
+            raise ValidationError('عمولة التحويل لا يمكن أن تكون بالسالب.')
+
+    def save(self, *args, **kwargs):
+        from .services import post_transfer
+
+        self.full_clean()
+        super().save(*args, **kwargs)
+        post_transfer(self)
+
+    def delete(self, *args, **kwargs):
+        from .services import reverse_entries
+
+        reverse_entries('money_transfer', self.pk)
+        super().delete(*args, **kwargs)

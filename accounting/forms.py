@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import FinancialAccount
+from .models import FinancialAccount, MoneyTransfer
 
 
 class FinancialAccountForm(forms.ModelForm):
@@ -41,5 +41,19 @@ class ManualAdjustmentForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['account'].queryset = FinancialAccount.objects.filter(is_active=True)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+
+
+class MoneyTransferForm(forms.ModelForm):
+    class Meta:
+        model = MoneyTransfer
+        fields = ['source_account', 'target_account', 'amount', 'fee_amount', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        account_queryset = FinancialAccount.objects.filter(is_active=True)
+        self.fields['source_account'].queryset = account_queryset
+        self.fields['target_account'].queryset = account_queryset
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
