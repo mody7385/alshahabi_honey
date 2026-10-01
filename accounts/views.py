@@ -78,6 +78,18 @@ def manager_dashboard(request):
 
 
 @login_required
+def manager_archive_dashboard(request):
+    profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
+
+    if not profile or profile.role != 'manager':
+        return redirect('dashboard')
+
+    return render(request, 'accounts/archive_dashboard.html', {
+        'profile': profile,
+    })
+
+
+@login_required
 def manager_customers_list(request):
     profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
 

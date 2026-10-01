@@ -76,15 +76,11 @@
 <div class="panel-card">
     <h3>القوائم السريعة</h3>
     <div class="quick-links">
-        <a href="{% url 'manager-warehouses-list' %}">المخازن</a>
         <a href="{% url 'manager-products-list' %}">المنتجات</a>
         <a href="{% url 'manager-inventory-list' %}">المخزون</a>
         <a href="{% url 'manager-sale-create' %}">بيع جديد</a>
         <a href="{% url 'manager-sales-list' %}">المبيعات</a>
         <a href="{% url 'manager-customers-list' %}">العملاء</a>
-        <a href="{% url 'manager-worker-accounts-list' %}">حسابات العمال</a>
-        <a href="{% url 'manager-users-list' %}">المستخدمون</a>
-        <a href="{% url 'manager-reports' %}">التقارير</a>
         <a href="{% url 'manager-profit-center' %}">الأرباح والمصاريف</a>
         <a href="{% url 'supplier-list' %}">الموردون</a>
         <a href="{% url 'accounting-account-list' %}">الحسابات المالية</a>
@@ -92,6 +88,7 @@
         <a href="{% url 'accounting-transfer-create' %}">تحويل بين الحسابات</a>
         <a href="{% url 'accounting-deferred-customer-list' %}">عملاء الآجل</a>
         <a href="{% url 'accounting-reports-dashboard' %}">التقارير المحاسبية</a>
+        <a href="{% url 'manager-archive-dashboard' %}">الأرشيف القديم</a>
     </div>
 </div>
 {% endblock %}

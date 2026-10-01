@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}الأرشيف القديم{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>الأرشيف القديم</h2>
+    <p class="muted">روابط البيانات والواجهات القديمة محفوظة هنا ولا تدخل في العمل اليومي الجديد.</p>
+</div>
+
+<div class="panel-card">
+    <h3>روابط الأرشيف</h3>
+    <div class="quick-links">
+        <a href="{% url 'manager-sales-list' %}">المبيعات القديمة</a>
+        <a href="{% url 'manager-warehouses-list' %}">المخازن القديمة</a>
+        <a href="{% url 'manager-users-list' %}">المستخدمون القدامى</a>
+        <a href="{% url 'manager-worker-accounts-list' %}">حسابات العمال القديمة</a>
+        <a href="{% url 'manager-reports' %}">التقارير القديمة</a>
+    </div>
+</div>
+{% endblock %}
