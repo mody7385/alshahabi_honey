@@ -25,6 +25,7 @@
                         <th>المبلغ</th>
                         <th>التصنيف</th>
                         <th>الوصف</th>
+                        <th>إدارة</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,6 +36,13 @@
                         <td>{{ entry.amount }}</td>
                         <td>{{ entry.category }}</td>
                         <td>{{ entry.description }}</td>
+                        <td>
+                            {% if entry.source_type == 'manual_adjustment' %}
+                                <a href="{% url 'accounting-manual-adjustment-void' entry.pk %}">عكس</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

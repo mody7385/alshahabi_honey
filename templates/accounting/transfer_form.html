@@ -49,6 +49,9 @@
 
         <div class="actions">
             <button type="submit" class="btn">{{ submit_label }}</button>
+            {% if form.instance.pk %}
+                <a href="{% url 'accounting-transfer-delete' form.instance.pk %}" class="btn btn-secondary">حذف التحويل</a>
+            {% endif %}
             <a href="{% url 'accounting-account-list' %}" class="btn btn-secondary">رجوع</a>
         </div>
     </form>

@@ -7,7 +7,7 @@ from accounts.models import WorkerProfile
 from customers.models import Customer
 from sales.models import Sale
 from .forms import CustomerPaymentForm, FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
-from .models import CustomerPayment, FinancialAccount, MoneyTransfer
+from .models import CustomerPayment, FinancialAccount, LedgerEntry, MoneyTransfer
 from .services import (
     get_account_balances,
     get_cashflow_summary,
@@ -177,6 +177,51 @@ def transfer_update(request, pk):
         'form': form,
         'page_title': 'تعديل تحويل',
         'submit_label': 'حفظ التعديل',
+    })
+
+
+@login_required
+def transfer_delete(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    transfer = get_object_or_404(MoneyTransfer, pk=pk)
+    source_account_id = transfer.source_account_id
+
+    if request.method == 'POST':
+        transfer.delete()
+        return redirect('accounting-account-detail', pk=source_account_id)
+
+    return render(request, 'accounting/transfer_delete_confirm.html', {
+        'profile': profile,
+        'transfer': transfer,
+    })
+
+
+@login_required
+def manual_adjustment_void(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    entry = get_object_or_404(
+        LedgerEntry,
+        pk=pk,
+        source_type='manual_adjustment',
+        is_reversed=False,
+    )
+    account_id = entry.account_id
+
+    if request.method == 'POST':
+        from .services import reverse_entries
+
+        reverse_entries('manual_adjustment', entry.source_id)
+        return redirect('accounting-account-detail', pk=account_id)
+
+    return render(request, 'accounting/manual_adjustment_void_confirm.html', {
+        'profile': profile,
+        'entry': entry,
     })
 
 

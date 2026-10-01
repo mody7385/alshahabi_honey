@@ -8,6 +8,19 @@ from .forms import SupplierForm, SupplierPaymentForm, SupplierPurchaseForm
 from .models import Supplier, SupplierPayment, SupplierPurchase
 
 
+def get_supplier_totals(supplier):
+    purchases = supplier.purchases.all()
+    total_purchases = purchases.aggregate(total=Sum('total_amount')).get('total') or 0
+    paid_purchases = purchases.filter(
+        is_new_accounting_purchase=True,
+        payment_status=SupplierPurchase.PAYMENT_PAID,
+    ).aggregate(total=Sum('total_amount')).get('total') or 0
+    total_payments = supplier.payments.aggregate(total=Sum('amount')).get('total') or 0
+    total_paid = paid_purchases + total_payments
+    balance = total_purchases - total_paid
+    return total_purchases, total_paid, balance
+
+
 def get_manager_profile(request):
     profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
     if not profile or profile.role != 'manager':
@@ -25,9 +38,7 @@ def supplier_list(request):
 
     supplier_data = []
     for supplier in suppliers:
-        total_purchases = supplier.purchases.aggregate(total=Sum('total_amount')).get('total') or 0
-        total_payments = supplier.payments.aggregate(total=Sum('amount')).get('total') or 0
-        balance = total_purchases - total_payments
+        total_purchases, total_payments, balance = get_supplier_totals(supplier)
 
         supplier_data.append({
             'supplier': supplier,
@@ -99,9 +110,7 @@ def supplier_detail(request, pk):
     purchases = supplier.purchases.select_related('product').all()
     payments = supplier.payments.all()
 
-    total_purchases = purchases.aggregate(total=Sum('total_amount')).get('total') or 0
-    total_payments = payments.aggregate(total=Sum('amount')).get('total') or 0
-    balance = total_purchases - total_payments
+    total_purchases, total_payments, balance = get_supplier_totals(supplier)
 
     return render(request, 'suppliers/supplier_detail.html', {
         'profile': profile,

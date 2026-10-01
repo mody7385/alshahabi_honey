@@ -178,16 +178,24 @@ def get_account_balances() -> list[dict]:
 
 def get_profit_summary(start_date, end_date) -> dict:
     entries = _entries_for_period(start_date, end_date)
-    sales_total = _sum_entries(entries, 'in', ['sale_cash', 'sale_transfer', 'customer_payment'])
-    purchase_total = _sum_entries(entries, 'out', ['supplier_purchase_payment'])
+    sales = Sale.objects.filter(is_new_accounting_sale=True)
+    if start_date:
+        sales = sales.filter(sale_date__date__gte=start_date)
+    if end_date:
+        sales = sales.filter(sale_date__date__lte=end_date)
+
+    sales_total = _money(sales.aggregate(total=Sum('total_amount')).get('total') or Decimal('0.00'))
+    purchase_total = _money(sales.aggregate(total=Sum('total_cost')).get('total') or Decimal('0.00'))
+    gross_profit = _money(sales.aggregate(total=Sum('profit_amount')).get('total') or Decimal('0.00'))
     operating_expenses = _sum_entries(entries, 'out', ['operating_expense', 'transfer_fee'])
     personal_expenses = _sum_entries(entries, 'out', ['personal_expense'])
     return {
         'sales_total': sales_total,
         'purchase_total': purchase_total,
+        'gross_profit': gross_profit,
         'operating_expenses': operating_expenses,
         'personal_expenses': personal_expenses,
-        'net_profit': _money(sales_total - purchase_total - operating_expenses),
+        'net_profit': _money(gross_profit - operating_expenses),
     }
 
 

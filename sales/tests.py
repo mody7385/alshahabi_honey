@@ -168,3 +168,36 @@ class AccountingSaleTests(TestCase):
         self.assertTrue(sale.is_new_accounting_sale)
         self.assertEqual(sale.payment_account, wallet)
         self.assertEqual(wallet.current_balance(), Decimal('100.00'))
+
+    def test_manager_can_update_accounting_sale_payment_account(self):
+        manager_user = User.objects.create_user(username='manager-edit', password='pass')
+        manager = WorkerProfile.objects.create(
+            user=manager_user,
+            full_name='المدير',
+            role='manager',
+        )
+        wallet = FinancialAccount.objects.create(name='محفظة', account_type='wallet')
+        bank = FinancialAccount.objects.create(name='بنك', account_type='bank')
+        sale = self.make_sale(
+            worker=manager,
+            payment_type='transfer',
+            payment_account=wallet,
+        )
+        self.client.force_login(manager_user)
+
+        response = self.client.post(reverse('sale-update', args=[sale.pk]), {
+            'customer_name': '',
+            'customer_phone': '',
+            'product': self.product.pk,
+            'quantity_dabba': '1',
+            'price_per_dabba': '120',
+            'quantity_kg': '0',
+            'price_per_kg': '0',
+            'payment_type': 'transfer',
+            'payment_account': bank.pk,
+            'notes': '',
+        })
+
+        self.assertRedirects(response, reverse('manager-sales-list'))
+        self.assertEqual(wallet.current_balance(), Decimal('0.00'))
+        self.assertEqual(bank.current_balance(), Decimal('120.00'))

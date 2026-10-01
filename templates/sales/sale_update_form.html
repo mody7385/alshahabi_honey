@@ -59,6 +59,20 @@
                 {{ form.payment_type }}
             </div>
 
+            {% if form.cash_worker_account %}
+            <div class="col-6">
+                <label>حساب العامل النقدي</label>
+                {{ form.cash_worker_account }}
+            </div>
+            {% endif %}
+
+            {% if form.payment_account %}
+            <div class="col-6">
+                <label>حساب الحوالة</label>
+                {{ form.payment_account }}
+            </div>
+            {% endif %}
+
             <div class="col-12">
                 <label>ملاحظات</label>
                 {{ form.notes }}

@@ -96,7 +96,7 @@ class WorkerSaleForm(SaleLineForm):
     customer_phone = forms.CharField(required=False, label='رقم جوال العميل')
 
     class Meta(SaleLineForm.Meta):
-        fields = SaleLineForm.Meta.fields + ['payment_type', 'notes']
+        fields = SaleLineForm.Meta.fields + ['payment_type', 'cash_worker_account', 'payment_account', 'notes']
         widgets = {
             'notes': forms.Textarea(attrs={'rows': 4}),
         }
@@ -110,6 +110,18 @@ class WorkerSaleForm(SaleLineForm):
 
         self.fields['customer_name'].widget.attrs['class'] = 'form-control'
         self.fields['customer_phone'].widget.attrs['class'] = 'form-control'
+        self.fields['cash_worker_account'].queryset = FinancialAccount.objects.filter(
+            account_type='worker',
+            is_active=True,
+        )
+        self.fields['payment_account'].queryset = FinancialAccount.objects.filter(
+            account_type__in=['cashbox', 'bank', 'wallet'],
+            is_active=True,
+        )
+
+        if not (self.instance and self.instance.pk and self.instance.is_new_accounting_sale):
+            self.fields.pop('cash_worker_account', None)
+            self.fields.pop('payment_account', None)
 
     def clean(self):
         cleaned_data = super().clean()

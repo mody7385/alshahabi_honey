@@ -115,6 +115,54 @@ class AccountingViewTests(TestCase):
         self.assertEqual(source.current_balance(), Decimal("695.00"))
         self.assertEqual(target.current_balance(), Decimal("300.00"))
 
+    def test_manager_can_delete_transfer_and_reverse_entries(self):
+        source = FinancialAccount.objects.create(
+            name="محفظة",
+            account_type="wallet",
+            opening_balance=Decimal("1000.00"),
+        )
+        target = FinancialAccount.objects.create(
+            name="بنك",
+            account_type="bank",
+            opening_balance=Decimal("0.00"),
+        )
+        transfer = MoneyTransfer.objects.create(
+            source_account=source,
+            target_account=target,
+            amount=Decimal("300.00"),
+            fee_amount=Decimal("5.00"),
+            description="تحويل للبنك",
+        )
+
+        response = self.client.post(reverse("accounting-transfer-delete", args=[transfer.pk]))
+
+        self.assertRedirects(response, reverse("accounting-account-detail", args=[source.pk]))
+        self.assertEqual(source.current_balance(), Decimal("1000.00"))
+        self.assertEqual(target.current_balance(), Decimal("0.00"))
+
+    def test_manager_can_void_manual_adjustment(self):
+        account = FinancialAccount.objects.create(
+            name="الصندوق",
+            account_type="cashbox",
+            opening_balance=Decimal("100.00"),
+        )
+        entry = post_entry(
+            account=account,
+            amount=Decimal("75.00"),
+            direction="in",
+            category="manual_deposit",
+            description="إضافة رصيد",
+            source_type="manual_adjustment",
+            source_id=0,
+        )
+        entry.source_id = entry.pk
+        entry.save(update_fields=["source_id"])
+
+        response = self.client.post(reverse("accounting-manual-adjustment-void", args=[entry.pk]))
+
+        self.assertRedirects(response, reverse("accounting-account-detail", args=[account.pk]))
+        self.assertEqual(account.current_balance(), Decimal("100.00"))
+
 
 class MoneyTransferTests(TestCase):
     def test_transfer_moves_money_between_accounts_and_fee_counts_as_operating_expense(self):
@@ -258,16 +306,46 @@ class AccountingReportTests(TestCase):
 
     def test_profit_summary_includes_sales_minus_operating_expenses_and_excludes_personal(self):
         account = FinancialAccount.objects.create(name="الصندوق", account_type="cashbox")
-        post_entry(account, Decimal("200.00"), "in", "sale_cash", "بيع", "sale", 1)
-        post_entry(account, Decimal("50.00"), "out", "operating_expense", "تشغيل", "expense", 1)
-        post_entry(account, Decimal("25.00"), "out", "personal_expense", "شخصي", "expense", 2)
+        user = User.objects.create_user(username="profit-manager", password="pass")
+        manager = WorkerProfile.objects.create(
+            user=user,
+            full_name="Manager",
+            role=WorkerProfile.ROLE_MANAGER,
+        )
+        customer = Customer.objects.create(name="عميل آجل")
+        warehouse = Warehouse.objects.create(name="حضرموت", city="المكلا")
+        product = Product.objects.create(
+            warehouse=warehouse,
+            name="سدر",
+            purchase_price_per_kg=Decimal("10.00"),
+            default_sale_price_per_dabba=Decimal("100.00"),
+            default_sale_price_per_kg=Decimal("20.00"),
+        )
+        Inventory.objects.create(product=product, full_dabba_count=Decimal("10.00"))
+        Sale.objects.create(
+            warehouse=warehouse,
+            worker=manager,
+            customer=customer,
+            product=product,
+            quantity_dabba=Decimal("1.00"),
+            price_per_dabba=Decimal("100.00"),
+            quantity_kg=Decimal("0.00"),
+            price_per_kg=Decimal("0.00"),
+            payment_type="deferred",
+            is_new_accounting_sale=True,
+        )
+        CustomerPayment.objects.create(customer=customer, account=account, amount=Decimal("100.00"))
+        post_entry(account, Decimal("10.00"), "out", "operating_expense", "تشغيل", "expense", 1)
+        post_entry(account, Decimal("5.00"), "out", "personal_expense", "شخصي", "expense", 2)
 
         summary = get_profit_summary(None, None)
 
-        self.assertEqual(summary["sales_total"], Decimal("200.00"))
-        self.assertEqual(summary["operating_expenses"], Decimal("50.00"))
-        self.assertEqual(summary["personal_expenses"], Decimal("25.00"))
-        self.assertEqual(summary["net_profit"], Decimal("150.00"))
+        self.assertEqual(summary["sales_total"], Decimal("100.00"))
+        self.assertEqual(summary["purchase_total"], Decimal("65.00"))
+        self.assertEqual(summary["gross_profit"], Decimal("35.00"))
+        self.assertEqual(summary["operating_expenses"], Decimal("10.00"))
+        self.assertEqual(summary["personal_expenses"], Decimal("5.00"))
+        self.assertEqual(summary["net_profit"], Decimal("25.00"))
 
     def test_cashflow_summary_groups_money_by_category(self):
         account = FinancialAccount.objects.create(name="الصندوق", account_type="cashbox")

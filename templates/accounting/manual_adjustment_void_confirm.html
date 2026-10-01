@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}عكس حركة مالية{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>عكس حركة مالية</h2>
+    <p class="muted">سيتم إلغاء أثر هذه الحركة من الرصيد.</p>
+</div>
+
+<div class="panel-card">
+    <p>هل تريد عكس حركة {{ entry.amount }} في حساب {{ entry.account.name }}؟</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn">عكس الحركة</button>
+            <a href="{% url 'accounting-account-detail' entry.account.pk %}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

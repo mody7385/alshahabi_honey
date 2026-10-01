@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -66,6 +67,27 @@ class SupplierAccountingTests(TestCase):
                 is_reversed=False,
             ).exists()
         )
+
+    def test_paid_purchase_does_not_leave_supplier_balance_due(self):
+        user = User.objects.create_user(username='balance-manager', password='pass')
+        WorkerProfile.objects.create(
+            user=user,
+            full_name='المدير',
+            role=WorkerProfile.ROLE_MANAGER,
+        )
+        self.client.force_login(user)
+        account = FinancialAccount.objects.create(
+            name='الصندوق',
+            account_type='cashbox',
+            opening_balance=Decimal('500.00'),
+        )
+        self.make_purchase(payment_status='paid', payment_account=account)
+
+        response = self.client.get(reverse('supplier-detail', args=[self.supplier.pk]))
+
+        self.assertEqual(response.context['total_purchases'], Decimal('100.00'))
+        self.assertEqual(response.context['total_payments'], Decimal('100.00'))
+        self.assertEqual(response.context['balance'], Decimal('0.00'))
 
     def test_unpaid_purchase_posts_no_ledger_entry(self):
         purchase = self.make_purchase(payment_status='unpaid')
