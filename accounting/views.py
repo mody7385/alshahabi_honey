@@ -2,9 +2,11 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import WorkerProfile
-from .forms import FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
-from .models import FinancialAccount, MoneyTransfer
-from .services import post_entry
+from customers.models import Customer
+from sales.models import Sale
+from .forms import CustomerPaymentForm, FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
+from .models import CustomerPayment, FinancialAccount, MoneyTransfer
+from .services import get_customer_deferred_balance, get_deferred_customer_balances, post_entry
 
 
 def get_manager_profile(request):
@@ -164,4 +166,112 @@ def transfer_update(request, pk):
         'form': form,
         'page_title': 'تعديل تحويل',
         'submit_label': 'حفظ التعديل',
+    })
+
+
+@login_required
+def deferred_customer_list(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    balances = get_deferred_customer_balances()
+    return render(request, 'accounting/deferred_customer_list.html', {
+        'profile': profile,
+        'balances': balances,
+    })
+
+
+@login_required
+def customer_statement(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    customer = get_object_or_404(Customer, pk=pk)
+    balance = get_customer_deferred_balance(customer)
+    sales = Sale.objects.filter(
+        customer=customer,
+        payment_type='deferred',
+        is_new_accounting_sale=True,
+    ).select_related('product').order_by('-sale_date')
+    payments = CustomerPayment.objects.filter(customer=customer).select_related('account')
+
+    return render(request, 'accounting/customer_statement.html', {
+        'profile': profile,
+        'customer': customer,
+        'balance': balance,
+        'sales': sales,
+        'payments': payments,
+    })
+
+
+@login_required
+def customer_payment_create(request, customer_pk=None):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    customer = get_object_or_404(Customer, pk=customer_pk) if customer_pk else None
+
+    if request.method == 'POST':
+        form = CustomerPaymentForm(request.POST, customer=customer)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            if customer:
+                payment.customer = customer
+            payment.save()
+            return redirect('accounting-customer-statement', pk=payment.customer_id)
+    else:
+        form = CustomerPaymentForm(customer=customer)
+
+    return render(request, 'accounting/customer_payment_form.html', {
+        'profile': profile,
+        'form': form,
+        'customer': customer,
+        'page_title': 'تسجيل سداد عميل',
+        'submit_label': 'حفظ السداد',
+    })
+
+
+@login_required
+def customer_payment_update(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    payment = get_object_or_404(CustomerPayment, pk=pk)
+
+    if request.method == 'POST':
+        form = CustomerPaymentForm(request.POST, instance=payment)
+        if form.is_valid():
+            payment = form.save()
+            return redirect('accounting-customer-statement', pk=payment.customer_id)
+    else:
+        form = CustomerPaymentForm(instance=payment)
+
+    return render(request, 'accounting/customer_payment_form.html', {
+        'profile': profile,
+        'form': form,
+        'customer': payment.customer,
+        'page_title': 'تعديل سداد عميل',
+        'submit_label': 'حفظ التعديل',
+    })
+
+
+@login_required
+def customer_payment_delete(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    payment = get_object_or_404(CustomerPayment, pk=pk)
+    customer_id = payment.customer_id
+    if request.method == 'POST':
+        payment.delete()
+        return redirect('accounting-customer-statement', pk=customer_id)
+
+    return render(request, 'accounting/customer_payment_delete_confirm.html', {
+        'profile': profile,
+        'payment': payment,
     })

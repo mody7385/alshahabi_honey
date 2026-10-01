@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import FinancialAccount, MoneyTransfer
+from .models import CustomerPayment, FinancialAccount, MoneyTransfer
 
 
 class FinancialAccountForm(forms.ModelForm):
@@ -55,5 +55,24 @@ class MoneyTransferForm(forms.ModelForm):
         account_queryset = FinancialAccount.objects.filter(is_active=True)
         self.fields['source_account'].queryset = account_queryset
         self.fields['target_account'].queryset = account_queryset
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+
+
+class CustomerPaymentForm(forms.ModelForm):
+    class Meta:
+        model = CustomerPayment
+        fields = ['customer', 'account', 'amount', 'payment_date', 'notes']
+        widgets = {
+            'payment_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, customer=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if customer is not None:
+            self.fields['customer'].initial = customer
+            self.fields['customer'].disabled = True
+        self.fields['account'].queryset = FinancialAccount.objects.filter(is_active=True)
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'

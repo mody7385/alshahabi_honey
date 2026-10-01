@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
 
+from customers.models import Customer
+
 
 MONEY_ZERO = Decimal('0.00')
 
@@ -136,4 +138,50 @@ class MoneyTransfer(models.Model):
         from .services import reverse_entries
 
         reverse_entries('money_transfer', self.pk)
+        super().delete(*args, **kwargs)
+
+
+class CustomerPayment(models.Model):
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.PROTECT,
+        related_name='accounting_payments',
+        verbose_name='العميل',
+    )
+    account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        related_name='customer_payments',
+        verbose_name='الحساب المالي',
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='المبلغ')
+    payment_date = models.DateTimeField(default=timezone.now, verbose_name='تاريخ السداد')
+    notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'سداد عميل'
+        verbose_name_plural = 'سدادات العملاء'
+        ordering = ['-payment_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.customer.name} - {self.amount}'
+
+    def clean(self):
+        if self.amount <= 0:
+            raise ValidationError('مبلغ السداد يجب أن يكون أكبر من صفر.')
+        if self.account_id and not self.account.is_active:
+            raise ValidationError('لا يمكن السداد إلى حساب مالي مخفي.')
+
+    def save(self, *args, **kwargs):
+        from .services import sync_customer_payment
+
+        self.full_clean()
+        super().save(*args, **kwargs)
+        sync_customer_payment(self)
+
+    def delete(self, *args, **kwargs):
+        from .services import reverse_entries
+
+        reverse_entries('customer_payment', self.pk)
         super().delete(*args, **kwargs)

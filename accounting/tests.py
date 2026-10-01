@@ -4,8 +4,14 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from accounting.models import FinancialAccount, MoneyTransfer
-from accounting.services import post_entry, reverse_entries
+from customers.models import Customer
+from inventory.models import Inventory
+from products.models import Product
+from sales.models import Sale
+from warehouses.models import Warehouse
+
+from accounting.models import CustomerPayment, FinancialAccount, MoneyTransfer
+from accounting.services import get_customer_deferred_balance, post_entry, reverse_entries
 from accounts.models import WorkerProfile
 
 
@@ -124,3 +130,98 @@ class MoneyTransferTests(TestCase):
 
         self.assertEqual(source.current_balance(), Decimal("490.00"))
         self.assertEqual(target.current_balance(), Decimal("500.00"))
+
+
+class DeferredCustomerAccountingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="manager2", password="pass")
+        self.manager = WorkerProfile.objects.create(
+            user=self.user,
+            full_name="Manager",
+            role=WorkerProfile.ROLE_MANAGER,
+        )
+        self.customer = Customer.objects.create(name="عميل آجل", phone="777")
+        self.warehouse = Warehouse.objects.create(name="حضرموت", city="المكلا")
+        self.product = Product.objects.create(
+            warehouse=self.warehouse,
+            name="سدر",
+            purchase_price_per_kg=Decimal("10.00"),
+            default_sale_price_per_dabba=Decimal("100.00"),
+            default_sale_price_per_kg=Decimal("20.00"),
+        )
+        Inventory.objects.create(
+            product=self.product,
+            full_dabba_count=Decimal("10.00"),
+            open_kg=Decimal("0.00"),
+        )
+
+    def make_deferred_sale(self, amount="100.00"):
+        return Sale.objects.create(
+            warehouse=self.warehouse,
+            worker=self.manager,
+            customer=self.customer,
+            product=self.product,
+            quantity_dabba=Decimal("1.00"),
+            price_per_dabba=Decimal(amount),
+            quantity_kg=Decimal("0.00"),
+            price_per_kg=Decimal("0.00"),
+            payment_type="deferred",
+            is_new_accounting_sale=True,
+        )
+
+    def test_deferred_sale_increases_customer_receivable_report(self):
+        self.make_deferred_sale("100.00")
+
+        balance = get_customer_deferred_balance(self.customer)
+
+        self.assertEqual(balance["total_deferred"], Decimal("100.00"))
+        self.assertEqual(balance["total_payments"], Decimal("0.00"))
+        self.assertEqual(balance["remaining"], Decimal("100.00"))
+
+    def test_customer_payment_posts_money_and_decreases_remaining_customer_balance(self):
+        self.make_deferred_sale("100.00")
+        account = FinancialAccount.objects.create(name="بنك", account_type="bank")
+
+        CustomerPayment.objects.create(
+            customer=self.customer,
+            account=account,
+            amount=Decimal("40.00"),
+            notes="سداد جزئي",
+        )
+
+        balance = get_customer_deferred_balance(self.customer)
+        self.assertEqual(account.current_balance(), Decimal("40.00"))
+        self.assertEqual(balance["total_payments"], Decimal("40.00"))
+        self.assertEqual(balance["remaining"], Decimal("60.00"))
+
+    def test_edit_customer_payment_reverses_old_ledger_entry(self):
+        self.make_deferred_sale("100.00")
+        wallet = FinancialAccount.objects.create(name="محفظة", account_type="wallet")
+        bank = FinancialAccount.objects.create(name="بنك", account_type="bank")
+        payment = CustomerPayment.objects.create(
+            customer=self.customer,
+            account=wallet,
+            amount=Decimal("40.00"),
+        )
+
+        payment.account = bank
+        payment.amount = Decimal("70.00")
+        payment.save()
+
+        self.assertEqual(wallet.current_balance(), Decimal("0.00"))
+        self.assertEqual(bank.current_balance(), Decimal("70.00"))
+        self.assertEqual(get_customer_deferred_balance(self.customer)["remaining"], Decimal("30.00"))
+
+    def test_delete_customer_payment_reverses_ledger_entry(self):
+        self.make_deferred_sale("100.00")
+        account = FinancialAccount.objects.create(name="بنك", account_type="bank")
+        payment = CustomerPayment.objects.create(
+            customer=self.customer,
+            account=account,
+            amount=Decimal("40.00"),
+        )
+
+        payment.delete()
+
+        self.assertEqual(account.current_balance(), Decimal("0.00"))
+        self.assertEqual(get_customer_deferred_balance(self.customer)["remaining"], Decimal("100.00"))
