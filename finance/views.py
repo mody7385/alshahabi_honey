@@ -91,6 +91,7 @@ def manager_profit_center(request):
 
     expenses_qs = OperatingExpense.objects.filter(
         expense_date__range=[start_date, end_date],
+        expense_type=OperatingExpense.EXPENSE_OPERATING,
     ).order_by('-expense_date', '-created_at')
 
     total_expenses = expenses_qs.aggregate(total=Sum('amount')).get('total') or 0
@@ -125,7 +126,9 @@ def manager_operating_expense_create(request):
     if request.method == 'POST':
         form = ManagerOperatingExpenseForm(request.POST)
         if form.is_valid():
-            form.save()
+            expense = form.save(commit=False)
+            expense.is_new_accounting_expense = True
+            expense.save()
             return redirect('manager-profit-center')
     else:
         form = ManagerOperatingExpenseForm()
@@ -150,7 +153,9 @@ def manager_operating_expense_update(request, pk):
     if request.method == 'POST':
         form = ManagerOperatingExpenseForm(request.POST, instance=expense)
         if form.is_valid():
-            form.save()
+            expense = form.save(commit=False)
+            expense.is_new_accounting_expense = True
+            expense.save()
             return redirect('manager-profit-center')
     else:
         form = ManagerOperatingExpenseForm(instance=expense)

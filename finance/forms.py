@@ -1,5 +1,6 @@
 from django import forms
 
+from accounting.models import FinancialAccount
 from .models import OperatingExpense, WorkerAccountTransaction
 
 
@@ -35,6 +36,8 @@ class ManagerOperatingExpenseForm(forms.ModelForm):
             'name',
             'category',
             'amount',
+            'expense_type',
+            'payment_account',
             'expense_date',
             'notes',
         ]
@@ -45,6 +48,7 @@ class ManagerOperatingExpenseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['payment_account'].queryset = FinancialAccount.objects.filter(is_active=True)
 
         for field in self.fields.values():
             existing_class = field.widget.attrs.get('class', '')

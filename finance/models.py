@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from accounting.models import FinancialAccount
 from accounts.models import WorkerProfile
 
 
@@ -72,6 +73,13 @@ class WorkerAccountTransaction(models.Model):
 
 
 class OperatingExpense(models.Model):
+    EXPENSE_OPERATING = 'operating'
+    EXPENSE_PERSONAL = 'personal'
+    EXPENSE_TYPE_CHOICES = [
+        (EXPENSE_OPERATING, 'مصروف تشغيل'),
+        (EXPENSE_PERSONAL, 'مصروف شخصي'),
+    ]
+
     CATEGORY_CHOICES = [
         ('rent', 'إيجار'),
         ('wages', 'أجور ورواتب'),
@@ -98,6 +106,24 @@ class OperatingExpense(models.Model):
         verbose_name='المبلغ'
     )
 
+    expense_type = models.CharField(
+        max_length=20,
+        choices=EXPENSE_TYPE_CHOICES,
+        default=EXPENSE_OPERATING,
+        verbose_name='نوع المصروف',
+    )
+
+    payment_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name='expenses',
+        verbose_name='الحساب المالي',
+    )
+
+    is_new_accounting_expense = models.BooleanField(default=False, verbose_name='مصروف محاسبي جديد')
+
     expense_date = models.DateField(
         default=timezone.localdate,
         verbose_name='تاريخ المصروف'
@@ -121,3 +147,24 @@ class OperatingExpense(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
+
+    def clean(self):
+        if self.amount <= 0:
+            raise ValidationError('مبلغ المصروف يجب أن يكون أكبر من صفر.')
+        if self.is_new_accounting_expense and not self.payment_account_id:
+            raise ValidationError('يجب اختيار الحساب المالي للمصروف.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        if self.is_new_accounting_expense:
+            from .services import sync_expense_ledger
+
+            sync_expense_ledger(self)
+
+    def delete(self, *args, **kwargs):
+        if self.is_new_accounting_expense and self.pk:
+            from accounting.services import reverse_entries
+
+            reverse_entries('operating_expense', self.pk)
+        super().delete(*args, **kwargs)
