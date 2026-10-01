@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import WorkerProfile
 from customers.models import Customer
-from .forms import SaleHeaderForm, SaleLineForm, WorkerSaleForm
+from .forms import ManagerSaleHeaderForm, SaleHeaderForm, SaleLineForm, WorkerSaleForm
 from .models import Sale, SaleBatch
 
 
@@ -47,6 +47,67 @@ def can_access_sale(profile, sale):
     if profile.role == 'manager':
         return True
     return sale.worker_id == profile.id
+
+
+@login_required
+def manager_sale_create(request):
+    profile = WorkerProfile.objects.filter(user=request.user).select_related('warehouse').first()
+
+    if not profile or profile.role != 'manager':
+        return redirect('dashboard')
+
+    SaleLineFormSet = formset_factory(SaleLineForm, extra=6, min_num=1, validate_min=False)
+
+    if request.method == 'POST':
+        header_form = ManagerSaleHeaderForm(request.POST)
+        formset = SaleLineFormSet(request.POST)
+
+        if header_form.is_valid() and formset.is_valid():
+            line_forms = [
+                form for form in formset
+                if form.cleaned_data and not form.cleaned_data.get('DELETE') and not form.is_empty()
+            ]
+
+            if line_forms:
+                customer = get_or_create_customer_from_form(
+                    header_form.cleaned_data.get('customer_name'),
+                    header_form.cleaned_data.get('customer_phone'),
+                )
+                payment_type = header_form.cleaned_data['payment_type']
+                first_product = line_forms[0].cleaned_data['product']
+
+                with transaction.atomic():
+                    batch = SaleBatch.objects.create(
+                        worker=profile,
+                        warehouse=first_product.warehouse,
+                        customer=customer,
+                        payment_type=payment_type,
+                        notes=header_form.cleaned_data.get('notes'),
+                    )
+
+                    for line_form in line_forms:
+                        sale = line_form.save(commit=False)
+                        sale.batch = batch
+                        sale.worker = profile
+                        sale.warehouse = sale.product.warehouse
+                        sale.customer = customer
+                        sale.payment_type = payment_type
+                        sale.cash_worker_account = header_form.cleaned_data.get('cash_worker_account')
+                        sale.payment_account = header_form.cleaned_data.get('payment_account')
+                        sale.is_new_accounting_sale = True
+                        sale.notes = batch.notes
+                        sale.save()
+
+                return redirect('manager-sales-list')
+    else:
+        header_form = ManagerSaleHeaderForm()
+        formset = SaleLineFormSet()
+
+    return render(request, 'sales/manager_sale_form.html', {
+        'header_form': header_form,
+        'formset': formset,
+        'profile': profile,
+    })
 
 
 @login_required

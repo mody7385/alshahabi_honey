@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
 from accounts.models import WorkerProfile
+from accounting.models import FinancialAccount
 from customers.models import Customer
 from inventory.models import Inventory
 from products.models import Product
@@ -110,6 +111,25 @@ class Sale(models.Model):
         default=0,
         verbose_name='النقد المستلم على العامل',
     )
+    cash_worker_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        limit_choices_to={'account_type': 'worker', 'is_active': True},
+        related_name='cash_sales',
+        verbose_name='حساب العامل النقدي',
+    )
+    payment_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        limit_choices_to={'account_type__in': ['cashbox', 'bank', 'wallet'], 'is_active': True},
+        related_name='sales_payments',
+        verbose_name='حساب الدفع',
+    )
+    is_new_accounting_sale = models.BooleanField(default=False, verbose_name='بيع محاسبي جديد')
     notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
     sale_date = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ البيع')
 
@@ -134,11 +154,29 @@ class Sale(models.Model):
         if self.quantity_kg > 0 and self.price_per_kg <= 0:
             raise ValidationError('يجب إدخال سعر الكيلو عند البيع بالكيلو.')
 
-        if self.worker_id and not self.worker.warehouse:
+        if self.worker_id and not self.worker.warehouse and not (
+            self.is_new_accounting_sale and self.worker.role == WorkerProfile.ROLE_MANAGER
+        ):
             raise ValidationError('العامل غير مربوط بمخزن.')
 
-        if self.worker_id and self.product_id and self.worker.warehouse != self.product.warehouse:
+        if self.worker_id and self.product_id and self.worker.warehouse and self.worker.warehouse != self.product.warehouse:
             raise ValidationError('هذا المنتج لا يتبع مخزن العامل.')
+
+        if self.is_new_accounting_sale:
+            if self.payment_type == 'cash':
+                if not self.cash_worker_account_id:
+                    raise ValidationError('يجب اختيار حساب العامل في البيع النقدي.')
+                if self.cash_worker_account.account_type != 'worker':
+                    raise ValidationError('حساب البيع النقدي يجب أن يكون من نوع عامل.')
+
+            if self.payment_type == 'transfer':
+                if not self.payment_account_id:
+                    raise ValidationError('يجب اختيار الحساب المالي في بيع الحوالة.')
+                if self.payment_account.account_type not in {'cashbox', 'bank', 'wallet'}:
+                    raise ValidationError('حساب الحوالة يجب أن يكون صندوقًا أو بنكًا أو محفظة.')
+
+            if self.payment_type == 'deferred' and not self.customer_id:
+                raise ValidationError('في البيع الآجل يجب اختيار العميل.')
 
     def _restore_old_inventory(self):
         if not self.pk:
@@ -180,6 +218,8 @@ class Sale(models.Model):
     def save(self, *args, **kwargs):
         if self.worker and self.worker.warehouse:
             self.warehouse = self.worker.warehouse
+        elif self.product_id:
+            self.warehouse = self.product.warehouse
 
         dabba_sales_total = Decimal(self.quantity_dabba) * Decimal(self.price_per_dabba)
         kg_sales_total = Decimal(self.quantity_kg) * Decimal(self.price_per_kg)
@@ -199,9 +239,18 @@ class Sale(models.Model):
 
         super().save(*args, **kwargs)
         self.sync_worker_cash_transaction()
+        if self.is_new_accounting_sale:
+            from .services import sync_sale_ledger
+
+            sync_sale_ledger(self)
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
+        if self.is_new_accounting_sale and self.pk:
+            from accounting.services import reverse_entries
+
+            reverse_entries('sale', self.pk)
+
         inventory = Inventory.objects.get(product=self.product)
         restored_total = inventory.total_kg() + self.get_total_kg()
         inventory.set_from_total_kg(restored_total)

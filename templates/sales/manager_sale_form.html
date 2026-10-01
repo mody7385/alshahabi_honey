@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}بيع جديد{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>بيع جديد</h2>
+    <p class="muted">صفحة المدير لإضافة عملية بيع مرتبطة بالحسابات المالية.</p>
+</div>
+
+<div class="panel-card">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if header_form.non_field_errors %}
+            <div class="alert-error">{{ header_form.non_field_errors }}</div>
+        {% endif %}
+        {% if formset.non_form_errors %}
+            <div class="alert-error">{{ formset.non_form_errors }}</div>
+        {% endif %}
+
+        <div class="grid">
+            <div class="col-6">
+                <label>اسم العميل</label>
+                {{ header_form.customer_name }}
+            </div>
+            <div class="col-6">
+                <label>رقم جوال العميل</label>
+                {{ header_form.customer_phone }}
+            </div>
+            <div class="col-4">
+                <label>نوع الدفع</label>
+                {{ header_form.payment_type }}
+            </div>
+            <div class="col-4">
+                <label>حساب العامل للنقد</label>
+                {{ header_form.cash_worker_account }}
+            </div>
+            <div class="col-4">
+                <label>حساب الحوالة</label>
+                {{ header_form.payment_account }}
+            </div>
+            <div class="col-12">
+                <label>ملاحظات</label>
+                {{ header_form.notes }}
+            </div>
+        </div>
+
+        <div class="soft-divider"></div>
+        {{ formset.management_form }}
+
+        <div style="overflow-x:auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>عدد الدبب</th>
+                        <th>سعر الدبة</th>
+                        <th>الكيلوات</th>
+                        <th>سعر الكيلو</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset %}
+                    <tr>
+                        <td>
+                            {{ form.product }}
+                            {{ form.product.errors }}
+                        </td>
+                        <td>
+                            {{ form.quantity_dabba }}
+                            {{ form.quantity_dabba.errors }}
+                        </td>
+                        <td>
+                            {{ form.price_per_dabba }}
+                            {{ form.price_per_dabba.errors }}
+                        </td>
+                        <td>
+                            {{ form.quantity_kg }}
+                            {{ form.quantity_kg.errors }}
+                        </td>
+                        <td>
+                            {{ form.price_per_kg }}
+                            {{ form.price_per_kg.errors }}
+                            {{ form.non_field_errors }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-note">
+            النقد يحتاج حساب عامل، والحوالة تحتاج حساب بنك أو محفظة أو صندوق، والآجل يحتاج اسم العميل أو رقمه.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn">حفظ عملية البيع</button>
+            <a href="{% url 'manager-sales-list' %}" class="btn btn-secondary">المبيعات</a>
+            <a href="{% url 'manager-dashboard' %}" class="btn btn-secondary">رجوع</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

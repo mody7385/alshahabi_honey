@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    manager_sale_create,
     sale_delete,
     sale_update,
     worker_sale_create,
@@ -9,6 +10,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('manager/create/', manager_sale_create, name='manager-sale-create'),
     path('worker/create/', worker_sale_create, name='worker-sale-create'),
     path('worker/list/', worker_sales_list, name='worker-sales-list'),
     path('<int:pk>/', worker_sale_detail, name='worker-sale-detail'),

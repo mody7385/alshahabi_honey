@@ -1,5 +1,6 @@
 from django import forms
 
+from accounting.models import FinancialAccount
 from .models import Sale, SaleBatch
 
 
@@ -51,6 +52,8 @@ class SaleLineForm(forms.ModelForm):
                 warehouse=worker_profile.warehouse,
                 is_active=True,
             )
+        else:
+            self.fields['product'].queryset = self.fields['product'].queryset.filter(is_active=True)
 
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
@@ -113,6 +116,58 @@ class WorkerSaleForm(SaleLineForm):
         payment_type = cleaned_data.get('payment_type')
         customer_name = cleaned_data.get('customer_name')
         customer_phone = cleaned_data.get('customer_phone')
+
+        if payment_type == 'deferred' and not customer_name and not customer_phone:
+            raise forms.ValidationError('في البيع الآجل يجب إدخال اسم العميل أو رقم الجوال.')
+
+        return cleaned_data
+
+
+class ManagerSaleHeaderForm(forms.Form):
+    customer_name = forms.CharField(required=False, label='اسم العميل')
+    customer_phone = forms.CharField(required=False, label='رقم جوال العميل')
+    payment_type = forms.ChoiceField(choices=SaleBatch.PAYMENT_CHOICES, label='نوع الدفع')
+    cash_worker_account = forms.ModelChoiceField(
+        queryset=FinancialAccount.objects.none(),
+        required=False,
+        label='حساب العامل',
+    )
+    payment_account = forms.ModelChoiceField(
+        queryset=FinancialAccount.objects.none(),
+        required=False,
+        label='الحساب المالي',
+    )
+    notes = forms.CharField(
+        required=False,
+        label='ملاحظات',
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cash_worker_account'].queryset = FinancialAccount.objects.filter(
+            account_type='worker',
+            is_active=True,
+        ).order_by('name')
+        self.fields['payment_account'].queryset = FinancialAccount.objects.filter(
+            account_type__in=['cashbox', 'bank', 'wallet'],
+            is_active=True,
+        ).order_by('account_type', 'name')
+
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        payment_type = cleaned_data.get('payment_type')
+        customer_name = cleaned_data.get('customer_name')
+        customer_phone = cleaned_data.get('customer_phone')
+
+        if payment_type == 'cash' and not cleaned_data.get('cash_worker_account'):
+            raise forms.ValidationError('في البيع النقدي يجب اختيار حساب العامل.')
+
+        if payment_type == 'transfer' and not cleaned_data.get('payment_account'):
+            raise forms.ValidationError('في بيع الحوالة يجب اختيار الحساب المالي.')
 
         if payment_type == 'deferred' and not customer_name and not customer_phone:
             raise forms.ValidationError('في البيع الآجل يجب إدخال اسم العميل أو رقم الجوال.')
