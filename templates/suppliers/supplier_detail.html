@@ -47,9 +47,11 @@
                         <th>الدبب</th>
                         <th>الكيلوات</th>
                         <th>الإجمالي</th>
+                        <th>حالة السداد</th>
+                        <th>الحساب</th>
                         <th>المخزون</th>
                         <th>التاريخ</th>
-                        <th>التعديل</th>
+                        <th>إدارة</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,9 +61,15 @@
                         <td>{{ item.quantity_dabba }}</td>
                         <td>{{ item.quantity_kg }}</td>
                         <td>{{ item.total_amount }}</td>
+                        <td>{{ item.get_payment_status_display }}</td>
+                        <td>{{ item.payment_account.name|default:"-" }}</td>
                         <td>{% if item.add_to_inventory %}تمت الإضافة{% else %}بدون إضافة{% endif %}</td>
                         <td>{{ item.purchase_date }}</td>
-                        <td><a href="{% url 'supplier-purchase-update' item.pk %}">تعديل</a></td>
+                        <td>
+                            <a href="{% url 'supplier-purchase-update' item.pk %}">تعديل</a>
+                            |
+                            <a href="{% url 'supplier-purchase-delete' item.pk %}">حذف</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -81,18 +89,24 @@
                 <thead>
                     <tr>
                         <th>المبلغ</th>
+                        <th>الحساب</th>
                         <th>التاريخ</th>
                         <th>ملاحظات</th>
-                        <th>التعديل</th>
+                        <th>إدارة</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in payments %}
                     <tr>
                         <td>{{ item.amount }}</td>
+                        <td>{{ item.payment_account.name|default:"-" }}</td>
                         <td>{{ item.payment_date }}</td>
                         <td>{{ item.notes|default:"-" }}</td>
-                        <td><a href="{% url 'supplier-payment-update' item.pk %}">تعديل</a></td>
+                        <td>
+                            <a href="{% url 'supplier-payment-update' item.pk %}">تعديل</a>
+                            |
+                            <a href="{% url 'supplier-payment-delete' item.pk %}">حذف</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

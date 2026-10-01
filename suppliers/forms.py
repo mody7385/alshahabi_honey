@@ -1,6 +1,7 @@
 from django import forms
 from django.db import models
 
+from accounting.models import FinancialAccount
 from .models import Supplier, SupplierPayment, SupplierPurchase
 
 
@@ -30,6 +31,8 @@ class SupplierPurchaseForm(forms.ModelForm):
             'price_per_dabba',
             'price_per_kg',
             'add_to_inventory',
+            'payment_status',
+            'payment_account',
             'purchase_date',
             'notes',
         ]
@@ -45,6 +48,7 @@ class SupplierPurchaseForm(forms.ModelForm):
             field.widget.attrs['class'] = 'form-control'
         self.fields['quantity_dabba'].widget.attrs['step'] = '0.5'
         self.fields['add_to_inventory'].widget.attrs['class'] = ''
+        self.fields['payment_account'].queryset = FinancialAccount.objects.filter(is_active=True)
         product_queryset = self.fields['product'].queryset.filter(is_active=True)
         if self.instance and self.instance.pk and self.instance.product_id:
             product_queryset = self.fields['product'].queryset.filter(
@@ -56,7 +60,7 @@ class SupplierPurchaseForm(forms.ModelForm):
 class SupplierPaymentForm(forms.ModelForm):
     class Meta:
         model = SupplierPayment
-        fields = ['supplier', 'amount', 'payment_date', 'notes']
+        fields = ['supplier', 'amount', 'payment_account', 'payment_date', 'notes']
         widgets = {
             'payment_date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 4}),
@@ -64,6 +68,7 @@ class SupplierPaymentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['payment_account'].queryset = FinancialAccount.objects.filter(is_active=True)
 
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'

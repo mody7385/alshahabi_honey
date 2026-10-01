@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف سداد مورد{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>حذف سداد مورد</h2>
+    <p class="muted">سيتم عكس أثر السداد من الحساب المالي.</p>
+</div>
+
+<div class="panel-card">
+    <p>هل تريد حذف سداد {{ payment.amount }} للمورد {{ payment.supplier.name }}؟</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn">حذف</button>
+            <a href="{% url 'supplier-detail' payment.supplier.pk %}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

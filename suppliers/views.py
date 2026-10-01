@@ -124,7 +124,9 @@ def supplier_purchase_create(request):
         form = SupplierPurchaseForm(request.POST)
         if form.is_valid():
             try:
-                form.save()
+                purchase = form.save(commit=False)
+                purchase.is_new_accounting_purchase = True
+                purchase.save()
                 return redirect('supplier-list')
             except ValidationError as error:
                 form.add_error(None, error)
@@ -148,7 +150,9 @@ def supplier_payment_create(request):
     if request.method == 'POST':
         form = SupplierPaymentForm(request.POST)
         if form.is_valid():
-            form.save()
+            payment = form.save(commit=False)
+            payment.is_new_accounting_payment = True
+            payment.save()
             return redirect('supplier-list')
     else:
         form = SupplierPaymentForm()
@@ -173,7 +177,9 @@ def supplier_purchase_update(request, pk):
         form = SupplierPurchaseForm(request.POST, instance=purchase)
         if form.is_valid():
             try:
-                form.save()
+                purchase = form.save(commit=False)
+                purchase.is_new_accounting_purchase = True
+                purchase.save()
                 return redirect('supplier-detail', pk=purchase.supplier_id)
             except ValidationError as error:
                 form.add_error(None, error)
@@ -189,6 +195,32 @@ def supplier_purchase_update(request, pk):
 
 
 @login_required
+def supplier_purchase_delete(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    purchase = get_object_or_404(SupplierPurchase, pk=pk)
+    supplier_id = purchase.supplier_id
+
+    if request.method == 'POST':
+        try:
+            purchase.delete()
+            return redirect('supplier-detail', pk=supplier_id)
+        except ValidationError as error:
+            return render(request, 'suppliers/supplier_purchase_delete_confirm.html', {
+                'profile': profile,
+                'purchase': purchase,
+                'error': error,
+            })
+
+    return render(request, 'suppliers/supplier_purchase_delete_confirm.html', {
+        'profile': profile,
+        'purchase': purchase,
+    })
+
+
+@login_required
 def supplier_payment_update(request, pk):
     profile = get_manager_profile(request)
     if not profile:
@@ -199,7 +231,9 @@ def supplier_payment_update(request, pk):
     if request.method == 'POST':
         form = SupplierPaymentForm(request.POST, instance=payment)
         if form.is_valid():
-            form.save()
+            payment = form.save(commit=False)
+            payment.is_new_accounting_payment = True
+            payment.save()
             return redirect('supplier-detail', pk=payment.supplier_id)
     else:
         form = SupplierPaymentForm(instance=payment)
@@ -209,4 +243,23 @@ def supplier_payment_update(request, pk):
         'form': form,
         'page_title': 'تعديل سداد مورد',
         'submit_label': 'حفظ التعديل',
+    })
+
+
+@login_required
+def supplier_payment_delete(request, pk):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    payment = get_object_or_404(SupplierPayment, pk=pk)
+    supplier_id = payment.supplier_id
+
+    if request.method == 'POST':
+        payment.delete()
+        return redirect('supplier-detail', pk=supplier_id)
+
+    return render(request, 'suppliers/supplier_payment_delete_confirm.html', {
+        'profile': profile,
+        'payment': payment,
     })

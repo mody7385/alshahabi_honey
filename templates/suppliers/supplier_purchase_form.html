@@ -53,6 +53,16 @@
             </div>
 
             <div class="col-6">
+                <label>حالة السداد</label>
+                {{ form.payment_status }}
+            </div>
+
+            <div class="col-6">
+                <label>حساب السداد</label>
+                {{ form.payment_account }}
+            </div>
+
+            <div class="col-6">
                 <label>
                     {{ form.add_to_inventory }}
                     إضافة الكمية للمخزون
@@ -66,7 +76,8 @@
         </div>
 
         <div class="form-note">
-            سيتم حساب إجمالي الشراء تلقائيًا. إذا اخترت إضافة الكمية للمخزون سيتم تحديث مخزون المنتج مباشرة.
+            إذا كانت العملية مسددة يجب اختيار الحساب المالي الذي خرجت منه الفلوس.
+            إذا اخترت إضافة الكمية للمخزون سيتم تحديث مخزون المنتج مباشرة.
         </div>
 
         <div class="actions">

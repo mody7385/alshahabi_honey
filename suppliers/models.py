@@ -4,8 +4,15 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
+from accounting.models import FinancialAccount
 from inventory.models import DABBA_KG, Inventory
 from products.models import Product
+
+MONEY_STEP = Decimal('0.01')
+
+
+def money(value):
+    return Decimal(value).quantize(MONEY_STEP)
 
 
 class Supplier(models.Model):
@@ -26,6 +33,13 @@ class Supplier(models.Model):
 
 
 class SupplierPurchase(models.Model):
+    PAYMENT_PAID = 'paid'
+    PAYMENT_UNPAID = 'unpaid'
+    PAYMENT_STATUS_CHOICES = [
+        (PAYMENT_PAID, 'مسدد'),
+        (PAYMENT_UNPAID, 'آجل'),
+    ]
+
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchases')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='supplier_purchases')
 
@@ -37,6 +51,21 @@ class SupplierPurchase(models.Model):
 
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0, verbose_name='إجمالي الشراء')
     add_to_inventory = models.BooleanField(default=False, verbose_name='إضافة الكمية للمخزون')
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default=PAYMENT_UNPAID,
+        verbose_name='حالة السداد',
+    )
+    payment_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name='supplier_purchase_payments',
+        verbose_name='حساب السداد',
+    )
+    is_new_accounting_purchase = models.BooleanField(default=False, verbose_name='شراء محاسبي جديد')
     purchase_date = models.DateField(default=timezone.localdate, verbose_name='تاريخ الشراء')
     notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,6 +77,16 @@ class SupplierPurchase(models.Model):
 
     def total_kg(self):
         return (Decimal(self.quantity_dabba) * DABBA_KG) + Decimal(self.quantity_kg)
+
+    def clean(self):
+        if self.quantity_dabba == 0 and self.quantity_kg == 0:
+            raise ValidationError('يجب إدخال كمية الشراء.')
+        if self.quantity_dabba > 0 and self.price_per_dabba <= 0:
+            raise ValidationError('يجب إدخال سعر الدبة.')
+        if self.quantity_kg > 0 and self.price_per_kg <= 0:
+            raise ValidationError('يجب إدخال سعر الكيلو.')
+        if self.is_new_accounting_purchase and self.payment_status == self.PAYMENT_PAID and not self.payment_account_id:
+            raise ValidationError('في الشراء المسدد يجب اختيار الحساب المالي.')
 
     def _apply_inventory_delta(self, delta_kg):
         if delta_kg == 0:
@@ -70,7 +109,8 @@ class SupplierPurchase(models.Model):
 
         dabba_total = self.quantity_dabba * self.price_per_dabba
         kg_total = self.quantity_kg * self.price_per_kg
-        self.total_amount = dabba_total + kg_total
+        self.total_amount = money(dabba_total + kg_total)
+        self.full_clean()
 
         super().save(*args, **kwargs)
 
@@ -88,8 +128,17 @@ class SupplierPurchase(models.Model):
         else:
             self._apply_inventory_delta(new_inventory_kg - old_inventory_kg)
 
+        if self.is_new_accounting_purchase:
+            from .services import sync_supplier_purchase_ledger
+
+            sync_supplier_purchase_ledger(self)
+
     @transaction.atomic
     def delete(self, *args, **kwargs):
+        if self.is_new_accounting_purchase and self.pk:
+            from accounting.services import reverse_entries
+
+            reverse_entries('supplier_purchase', self.pk)
         if self.add_to_inventory:
             self._apply_inventory_delta(-self.total_kg())
         super().delete(*args, **kwargs)
@@ -101,6 +150,15 @@ class SupplierPurchase(models.Model):
 class SupplierPayment(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='المبلغ المسدد')
+    payment_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name='supplier_payments',
+        verbose_name='حساب السداد',
+    )
+    is_new_accounting_payment = models.BooleanField(default=False, verbose_name='سداد محاسبي جديد')
     payment_date = models.DateField(default=timezone.localdate, verbose_name='تاريخ السداد')
     notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,3 +170,24 @@ class SupplierPayment(models.Model):
 
     def __str__(self):
         return f'{self.supplier.name} - {self.amount}'
+
+    def clean(self):
+        if self.amount <= 0:
+            raise ValidationError('مبلغ السداد يجب أن يكون أكبر من صفر.')
+        if self.is_new_accounting_payment and not self.payment_account_id:
+            raise ValidationError('يجب اختيار الحساب المالي لسداد المورد.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        if self.is_new_accounting_payment:
+            from .services import sync_supplier_payment_ledger
+
+            sync_supplier_payment_ledger(self)
+
+    def delete(self, *args, **kwargs):
+        if self.is_new_accounting_payment and self.pk:
+            from accounting.services import reverse_entries
+
+            reverse_entries('supplier_payment', self.pk)
+        super().delete(*args, **kwargs)

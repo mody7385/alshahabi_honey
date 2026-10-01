@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف شراء مورد{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <h2>حذف شراء مورد</h2>
+    <p class="muted">سيتم عكس أثر الشراء من الحساب المالي والمخزون إذا كان مضافًا.</p>
+</div>
+
+<div class="panel-card">
+    {% if error %}
+        <div class="alert-error">{{ error }}</div>
+    {% endif %}
+    <p>هل تريد حذف شراء {{ purchase.product.name }} من {{ purchase.supplier.name }} بقيمة {{ purchase.total_amount }}؟</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button type="submit" class="btn">حذف</button>
+            <a href="{% url 'supplier-detail' purchase.supplier.pk %}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
