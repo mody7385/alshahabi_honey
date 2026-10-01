@@ -23,6 +23,7 @@ urlpatterns = [
     path('reports/accounts/', views.account_balances_report, name='accounting-account-balances-report'),
     path('reports/profit/', views.profit_report, name='accounting-profit-report'),
     path('reports/cashflow/', views.cashflow_report, name='accounting-cashflow-report'),
+    path('reports/comprehensive/', views.comprehensive_report, name='accounting-comprehensive-report'),
     path('reports/workers/', views.worker_balances_report, name='accounting-worker-balances-report'),
     path('reports/personal-expenses/', views.personal_expenses_report, name='accounting-personal-expenses-report'),
 ]

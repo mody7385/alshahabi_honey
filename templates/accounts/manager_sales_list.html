@@ -55,8 +55,7 @@
             <table class="custom-table">
                 <thead>
                     <tr>
-                        <th>العامل</th>
-                        <th>المخزن</th>
+                        <th>المتجر</th>
                         <th>المنتج</th>
                         <th>العميل</th>
                         <th>الدفع</th>
@@ -71,8 +70,7 @@
                 <tbody>
                     {% for sale in sales %}
                     <tr>
-                        <td>{{ sale.worker.full_name }}</td>
-                        <td>{{ sale.warehouse.name }}</td>
+                        <td>{{ sale.get_store_display }}</td>
                         <td>{{ sale.product.name }}</td>
                         <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}-{% endif %}</td>
                         <td>{{ sale.get_payment_type_display }}</td>

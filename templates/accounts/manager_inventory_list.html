@@ -20,7 +20,6 @@
             <table class="custom-table">
                 <thead>
                     <tr>
-                        <th>المخزن</th>
                         <th>المنتج</th>
                         <th>نوع العسل</th>
                         <th>الدبب الكاملة</th>
@@ -33,7 +32,6 @@
                 <tbody>
                     {% for item in inventory_items %}
                     <tr>
-                        <td>{{ item.product.warehouse.name }}</td>
                         <td>{{ item.product.name }}</td>
                         <td>{{ item.product.honey_type|default:"-" }}</td>
                         <td>{{ item.full_dabba_count }}</td>

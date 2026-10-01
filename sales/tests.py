@@ -6,13 +6,14 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounting.models import FinancialAccount, LedgerEntry
+from accounting.services import get_customer_deferred_balance
 from accounts.models import WorkerProfile
 from customers.models import Customer
 from inventory.models import Inventory
 from products.models import Product
 from warehouses.models import Warehouse
 
-from sales.models import Sale
+from sales.models import Sale, SaleBatch
 
 
 class AccountingSaleTests(TestCase):
@@ -201,3 +202,86 @@ class AccountingSaleTests(TestCase):
         self.assertRedirects(response, reverse('manager-sales-list'))
         self.assertEqual(wallet.current_balance(), Decimal('0.00'))
         self.assertEqual(bank.current_balance(), Decimal('120.00'))
+
+    def test_manager_sale_create_accepts_store_and_split_payment(self):
+        manager_user = User.objects.create_user(username='manager-split', password='pass')
+        WorkerProfile.objects.create(
+            user=manager_user,
+            full_name='المدير',
+            role='manager',
+        )
+        worker_account = FinancialAccount.objects.create(name='عهدة المدير', account_type='worker')
+        wallet = FinancialAccount.objects.create(name='محفظة سمرة', account_type='wallet')
+        self.client.force_login(manager_user)
+
+        response = self.client.post(reverse('manager-sale-create'), {
+            'store': 'samra',
+            'customer_name': 'عميل مختلط',
+            'customer_phone': '711',
+            'cash_amount': '30.00',
+            'transfer_amount': '50.00',
+            'deferred_amount': '20.00',
+            'cash_worker_account': worker_account.pk,
+            'payment_account': wallet.pk,
+            'notes': 'بيع موزع',
+            'form-TOTAL_FORMS': '1',
+            'form-INITIAL_FORMS': '0',
+            'form-MIN_NUM_FORMS': '0',
+            'form-MAX_NUM_FORMS': '1000',
+            'form-0-product': self.product.pk,
+            'form-0-quantity_dabba': '1',
+            'form-0-price_per_dabba': '100',
+            'form-0-quantity_kg': '0',
+            'form-0-price_per_kg': '0',
+        })
+
+        self.assertRedirects(response, reverse('manager-sales-list'))
+        batch = SaleBatch.objects.get(customer__name='عميل مختلط')
+        sale = batch.sales.get()
+        self.assertEqual(batch.store, 'samra')
+        self.assertEqual(sale.store, 'samra')
+        self.assertEqual(batch.cash_amount, Decimal('30.00'))
+        self.assertEqual(batch.transfer_amount, Decimal('50.00'))
+        self.assertEqual(batch.deferred_amount, Decimal('20.00'))
+        self.assertEqual(worker_account.current_balance(), Decimal('30.00'))
+        self.assertEqual(wallet.current_balance(), Decimal('50.00'))
+        self.assertEqual(
+            LedgerEntry.objects.filter(source_type='sale_batch', source_id=batch.pk, is_reversed=False).count(),
+            2,
+        )
+        self.assertEqual(get_customer_deferred_balance(batch.customer)['remaining'], Decimal('20.00'))
+
+    def test_manager_sale_create_rejects_split_payment_that_does_not_match_total(self):
+        manager_user = User.objects.create_user(username='manager-split-invalid', password='pass')
+        WorkerProfile.objects.create(
+            user=manager_user,
+            full_name='المدير',
+            role='manager',
+        )
+        worker_account = FinancialAccount.objects.create(name='عهدة المدير', account_type='worker')
+        self.client.force_login(manager_user)
+
+        response = self.client.post(reverse('manager-sale-create'), {
+            'store': 'alshahabi',
+            'customer_name': '',
+            'customer_phone': '',
+            'cash_amount': '90.00',
+            'transfer_amount': '0.00',
+            'deferred_amount': '0.00',
+            'cash_worker_account': worker_account.pk,
+            'payment_account': '',
+            'notes': '',
+            'form-TOTAL_FORMS': '1',
+            'form-INITIAL_FORMS': '0',
+            'form-MIN_NUM_FORMS': '0',
+            'form-MAX_NUM_FORMS': '1000',
+            'form-0-product': self.product.pk,
+            'form-0-quantity_dabba': '1',
+            'form-0-price_per_dabba': '100',
+            'form-0-quantity_kg': '0',
+            'form-0-price_per_kg': '0',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'مبالغ الدفع يجب أن تساوي إجمالي البيع')
+        self.assertFalse(SaleBatch.objects.exists())

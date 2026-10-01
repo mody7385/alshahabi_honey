@@ -14,6 +14,7 @@ from accounting.models import CustomerPayment, FinancialAccount, MoneyTransfer
 from accounting.services import (
     get_account_balances,
     get_cashflow_summary,
+    get_comprehensive_report,
     get_customer_deferred_balance,
     get_personal_expense_summary,
     get_profit_summary,
@@ -22,6 +23,8 @@ from accounting.services import (
     reverse_entries,
 )
 from accounts.models import WorkerProfile
+from sales.models import SaleBatch
+from sales.services import sync_sale_batch_ledger
 
 
 class AccountingLedgerTests(TestCase):
@@ -382,3 +385,64 @@ class AccountingReportTests(TestCase):
         summary = get_personal_expense_summary(None, None)
 
         self.assertEqual(summary["total"], Decimal("25.00"))
+
+    def test_comprehensive_report_page_shows_sales_expenses_collection_and_store_totals(self):
+        user = User.objects.create_user(username="comprehensive-manager", password="pass")
+        manager = WorkerProfile.objects.create(
+            user=user,
+            full_name="Manager",
+            role=WorkerProfile.ROLE_MANAGER,
+        )
+        customer = Customer.objects.create(name="عميل مختلط")
+        warehouse = Warehouse.objects.create(name="حضرموت", city="المكلا")
+        product = Product.objects.create(
+            warehouse=warehouse,
+            name="سدر",
+            purchase_price_per_kg=Decimal("10.00"),
+            default_sale_price_per_dabba=Decimal("100.00"),
+            default_sale_price_per_kg=Decimal("20.00"),
+        )
+        Inventory.objects.create(product=product, full_dabba_count=Decimal("10.00"))
+        worker_account = FinancialAccount.objects.create(name="عهدة المدير", account_type="worker")
+        wallet = FinancialAccount.objects.create(name="محفظة سمرة", account_type="wallet")
+        batch = SaleBatch.objects.create(
+            warehouse=warehouse,
+            worker=manager,
+            customer=customer,
+            store=SaleBatch.STORE_SAMRA,
+            payment_type="mixed",
+            uses_batch_accounting=True,
+            cash_amount=Decimal("30.00"),
+            transfer_amount=Decimal("50.00"),
+            deferred_amount=Decimal("20.00"),
+            cash_worker_account=worker_account,
+            payment_account=wallet,
+        )
+        Sale.objects.create(
+            batch=batch,
+            warehouse=warehouse,
+            worker=manager,
+            customer=customer,
+            store=SaleBatch.STORE_SAMRA,
+            product=product,
+            quantity_dabba=Decimal("1.00"),
+            price_per_dabba=Decimal("100.00"),
+            quantity_kg=Decimal("0.00"),
+            price_per_kg=Decimal("0.00"),
+            payment_type="mixed",
+            is_new_accounting_sale=True,
+        )
+        sync_sale_batch_ledger(batch)
+        post_entry(wallet, Decimal("10.00"), "out", "operating_expense", "تشغيل", "expense", 1)
+        post_entry(wallet, Decimal("5.00"), "out", "personal_expense", "شخصي", "expense", 2)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("accounting-comprehensive-report"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "التقرير الشامل")
+        self.assertContains(response, "100.00")
+        self.assertContains(response, "80.00")
+        self.assertContains(response, "20.00")
+        self.assertContains(response, "سمرة")
+        self.assertContains(response, "طباعة")

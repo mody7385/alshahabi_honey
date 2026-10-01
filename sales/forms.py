@@ -136,9 +136,44 @@ class WorkerSaleForm(SaleLineForm):
 
 
 class ManagerSaleHeaderForm(forms.Form):
+    store = forms.ChoiceField(
+        choices=SaleBatch.STORE_CHOICES,
+        required=False,
+        initial=SaleBatch.STORE_ALSHAHABI,
+        label='المتجر',
+    )
     customer_name = forms.CharField(required=False, label='اسم العميل')
     customer_phone = forms.CharField(required=False, label='رقم جوال العميل')
-    payment_type = forms.ChoiceField(choices=SaleBatch.PAYMENT_CHOICES, label='نوع الدفع')
+    payment_type = forms.ChoiceField(
+        choices=SaleBatch.PAYMENT_CHOICES,
+        required=False,
+        label='نوع الدفع',
+        widget=forms.HiddenInput,
+    )
+    cash_amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        initial=0,
+        label='مبلغ النقد',
+    )
+    transfer_amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        initial=0,
+        label='مبلغ الحوالة',
+    )
+    deferred_amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        initial=0,
+        label='مبلغ الآجل',
+    )
     cash_worker_account = forms.ModelChoiceField(
         queryset=FinancialAccount.objects.none(),
         required=False,
@@ -171,17 +206,19 @@ class ManagerSaleHeaderForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        payment_type = cleaned_data.get('payment_type')
         customer_name = cleaned_data.get('customer_name')
         customer_phone = cleaned_data.get('customer_phone')
+        cash_amount = cleaned_data.get('cash_amount') or 0
+        transfer_amount = cleaned_data.get('transfer_amount') or 0
+        deferred_amount = cleaned_data.get('deferred_amount') or 0
 
-        if payment_type == 'cash' and not cleaned_data.get('cash_worker_account'):
+        if cash_amount > 0 and not cleaned_data.get('cash_worker_account'):
             raise forms.ValidationError('في البيع النقدي يجب اختيار حساب العامل.')
 
-        if payment_type == 'transfer' and not cleaned_data.get('payment_account'):
+        if transfer_amount > 0 and not cleaned_data.get('payment_account'):
             raise forms.ValidationError('في بيع الحوالة يجب اختيار الحساب المالي.')
 
-        if payment_type == 'deferred' and not customer_name and not customer_phone:
+        if deferred_amount > 0 and not customer_name and not customer_phone:
             raise forms.ValidationError('في البيع الآجل يجب إدخال اسم العميل أو رقم الجوال.')
 
         return cleaned_data

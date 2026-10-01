@@ -2,10 +2,10 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
-from sales.models import Sale
+from sales.models import Sale, SaleBatch
 
 from .models import CustomerPayment, FinancialAccount, LedgerEntry
 
@@ -110,11 +110,18 @@ def sync_customer_payment(payment: CustomerPayment) -> None:
 
 
 def get_customer_deferred_balance(customer) -> dict:
-    total_deferred = Sale.objects.filter(
+    legacy_deferred = Sale.objects.filter(
         customer=customer,
         payment_type='deferred',
         is_new_accounting_sale=True,
+    ).filter(
+        Q(batch__isnull=True) | Q(batch__uses_batch_accounting=False),
     ).aggregate(total=Sum('total_amount')).get('total') or Decimal('0.00')
+    batch_deferred = SaleBatch.objects.filter(
+        customer=customer,
+        uses_batch_accounting=True,
+    ).aggregate(total=Sum('deferred_amount')).get('total') or Decimal('0.00')
+    total_deferred = Decimal(legacy_deferred) + Decimal(batch_deferred)
     total_payments = CustomerPayment.objects.filter(
         customer=customer,
     ).aggregate(total=Sum('amount')).get('total') or Decimal('0.00')
@@ -136,6 +143,15 @@ def get_deferred_customer_balances():
         Sale.objects.filter(
             payment_type='deferred',
             is_new_accounting_sale=True,
+            customer__isnull=False,
+        )
+        .filter(Q(batch__isnull=True) | Q(batch__uses_batch_accounting=False))
+        .values_list('customer_id', flat=True)
+    )
+    customer_ids.update(
+        SaleBatch.objects.filter(
+            uses_batch_accounting=True,
+            deferred_amount__gt=0,
             customer__isnull=False,
         ).values_list('customer_id', flat=True)
     )
@@ -196,6 +212,60 @@ def get_profit_summary(start_date, end_date) -> dict:
         'operating_expenses': operating_expenses,
         'personal_expenses': personal_expenses,
         'net_profit': _money(gross_profit - operating_expenses),
+    }
+
+
+def _sales_for_period(start_date, end_date):
+    sales = Sale.objects.filter(is_new_accounting_sale=True)
+    if start_date:
+        sales = sales.filter(sale_date__date__gte=start_date)
+    if end_date:
+        sales = sales.filter(sale_date__date__lte=end_date)
+    return sales
+
+
+def get_comprehensive_report(start_date, end_date) -> dict:
+    entries = _entries_for_period(start_date, end_date)
+    sales = _sales_for_period(start_date, end_date)
+    batches = SaleBatch.objects.filter(uses_batch_accounting=True)
+    if start_date:
+        batches = batches.filter(created_at__date__gte=start_date)
+    if end_date:
+        batches = batches.filter(created_at__date__lte=end_date)
+
+    profit = get_profit_summary(start_date, end_date)
+    cash_collected = _sum_entries(entries, 'in', ['sale_cash'])
+    transfer_collected = _sum_entries(entries, 'in', ['sale_transfer'])
+    customer_payments = _sum_entries(entries, 'in', ['customer_payment'])
+    collected_total = _money(cash_collected + transfer_collected + customer_payments)
+    deferred_total = _money(
+        (batches.aggregate(total=Sum('deferred_amount')).get('total') or Decimal('0.00')) +
+        (
+            sales
+            .filter(payment_type='deferred')
+            .filter(Q(batch__isnull=True) | Q(batch__uses_batch_accounting=False))
+            .aggregate(total=Sum('total_amount')).get('total') or Decimal('0.00')
+        )
+    )
+    remaining_from_sales = _money(profit['sales_total'] - collected_total)
+    store_rows = []
+    for store, label in SaleBatch.STORE_CHOICES:
+        store_sales = sales.filter(store=store)
+        store_rows.append({
+            'store': label,
+            'sales_total': _money(store_sales.aggregate(total=Sum('total_amount')).get('total') or Decimal('0.00')),
+            'profit_total': _money(store_sales.aggregate(total=Sum('profit_amount')).get('total') or Decimal('0.00')),
+        })
+
+    return {
+        **profit,
+        'cash_collected': cash_collected,
+        'transfer_collected': transfer_collected,
+        'customer_payments': customer_payments,
+        'collected_total': collected_total,
+        'deferred_total': deferred_total,
+        'remaining_from_sales': remaining_from_sales,
+        'store_rows': store_rows,
     }
 
 

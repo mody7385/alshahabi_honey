@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}التقرير الشامل{% endblock %}
+
+{% block content %}
+<div class="hero-card print-hide">
+    <h2>التقرير الشامل</h2>
+    <p class="muted">من {{ start_date }} إلى {{ end_date }}</p>
+
+    <form method="get" class="grid" style="margin-top: 18px;">
+        <div class="col-3">
+            <label>الفترة</label>
+            <select name="period" class="form-control">
+                <option value="day" {% if period == 'day' %}selected{% endif %}>اليوم</option>
+                <option value="week" {% if period == 'week' %}selected{% endif %}>الأسبوع</option>
+                <option value="month" {% if period == 'month' %}selected{% endif %}>الشهر</option>
+                <option value="year" {% if period == 'year' %}selected{% endif %}>السنة</option>
+            </select>
+        </div>
+        <div class="col-3">
+            <label>من تاريخ</label>
+            <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control">
+        </div>
+        <div class="col-3">
+            <label>إلى تاريخ</label>
+            <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control">
+        </div>
+        <div class="col-3" style="align-self:end;">
+            <button type="submit" class="btn">عرض</button>
+            <button type="button" class="btn btn-secondary" onclick="window.print()">طباعة</button>
+        </div>
+    </form>
+</div>
+
+<div class="panel-card">
+    <div class="report-header">
+        <h2>التقرير الشامل</h2>
+        <p class="muted">من {{ start_date }} إلى {{ end_date }}</p>
+    </div>
+
+    <div class="grid">
+        <div class="col-3"><div class="stat-card"><div class="stat-title">إجمالي المبيعات</div><div class="stat-number">{{ summary.sales_total }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">المبلغ المحصل</div><div class="stat-number">{{ summary.collected_total }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">المتبقي من المبيعات</div><div class="stat-number">{{ summary.remaining_from_sales }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">صافي الربح</div><div class="stat-number">{{ summary.net_profit }}</div></div></div>
+    </div>
+
+    <div class="grid" style="margin-top: 16px;">
+        <div class="col-3"><div class="stat-card"><div class="stat-title">النقد المحصل</div><div class="stat-number">{{ summary.cash_collected }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">الحوالات المحصلة</div><div class="stat-number">{{ summary.transfer_collected }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">الآجل</div><div class="stat-number">{{ summary.deferred_total }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">سدادات العملاء</div><div class="stat-number">{{ summary.customer_payments }}</div></div></div>
+    </div>
+
+    <div class="grid" style="margin-top: 16px;">
+        <div class="col-3"><div class="stat-card"><div class="stat-title">تكلفة البضاعة</div><div class="stat-number">{{ summary.purchase_total }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">الربح قبل المصاريف</div><div class="stat-number">{{ summary.gross_profit }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">المصاريف التشغيلية</div><div class="stat-number">{{ summary.operating_expenses }}</div></div></div>
+        <div class="col-3"><div class="stat-card"><div class="stat-title">المصاريف الشخصية</div><div class="stat-number">{{ summary.personal_expenses }}</div></div></div>
+    </div>
+
+    <div class="soft-divider"></div>
+
+    <h3>المبيعات حسب المتجر</h3>
+    <div style="overflow-x:auto;">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>المتجر</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>إجمالي الربح</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in summary.store_rows %}
+                <tr>
+                    <td>{{ row.store }}</td>
+                    <td>{{ row.sales_total }}</td>
+                    <td>{{ row.profit_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print {
+    .main-header,
+    .site-footer,
+    .print-hide {
+        display: none !important;
+    }
+    .panel-card,
+    .stat-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+    body {
+        background: #fff !important;
+    }
+}
+</style>
+{% endblock %}

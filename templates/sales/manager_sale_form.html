@@ -20,6 +20,11 @@
         {% endif %}
 
         <div class="grid">
+            {{ header_form.payment_type }}
+            <div class="col-4">
+                <label>المتجر</label>
+                {{ header_form.store }}
+            </div>
             <div class="col-6">
                 <label>اسم العميل</label>
                 {{ header_form.customer_name }}
@@ -29,14 +34,22 @@
                 {{ header_form.customer_phone }}
             </div>
             <div class="col-4">
-                <label>نوع الدفع</label>
-                {{ header_form.payment_type }}
+                <label>مبلغ النقد</label>
+                {{ header_form.cash_amount }}
             </div>
             <div class="col-4">
-                <label>حساب العامل للنقد</label>
+                <label>مبلغ الحوالة</label>
+                {{ header_form.transfer_amount }}
+            </div>
+            <div class="col-4">
+                <label>مبلغ الآجل</label>
+                {{ header_form.deferred_amount }}
+            </div>
+            <div class="col-6">
+                <label>حساب النقد</label>
                 {{ header_form.cash_worker_account }}
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <label>حساب الحوالة</label>
                 {{ header_form.payment_account }}
             </div>
@@ -91,7 +104,7 @@
         </div>
 
         <div class="form-note">
-            النقد يحتاج حساب عامل، والحوالة تحتاج حساب بنك أو محفظة أو صندوق، والآجل يحتاج اسم العميل أو رقمه.
+            اكتب مبلغ النقد ومبلغ الحوالة ومبلغ الآجل حسب ما دفع العميل. مجموع هذه المبالغ يجب أن يساوي إجمالي المنتجات، والآجل يحتاج اسم العميل أو رقمه.
         </div>
 
         <div class="actions">

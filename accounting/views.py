@@ -1,16 +1,18 @@
 from django.contrib.auth.decorators import login_required
-from datetime import date
+from datetime import date, timedelta
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from accounts.models import WorkerProfile
 from customers.models import Customer
-from sales.models import Sale
+from sales.models import Sale, SaleBatch
 from .forms import CustomerPaymentForm, FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
 from .models import CustomerPayment, FinancialAccount, LedgerEntry, MoneyTransfer
 from .services import (
     get_account_balances,
     get_cashflow_summary,
+    get_comprehensive_report,
     get_customer_deferred_balance,
     get_deferred_customer_balances,
     get_personal_expense_summary,
@@ -250,7 +252,14 @@ def customer_statement(request, pk):
         customer=customer,
         payment_type='deferred',
         is_new_accounting_sale=True,
+    ).filter(
+        Q(batch__isnull=True) | Q(batch__uses_batch_accounting=False),
     ).select_related('product').order_by('-sale_date')
+    batch_deferred_sales = SaleBatch.objects.filter(
+        customer=customer,
+        uses_batch_accounting=True,
+        deferred_amount__gt=0,
+    ).order_by('-created_at')
     payments = CustomerPayment.objects.filter(customer=customer).select_related('account')
 
     return render(request, 'accounting/customer_statement.html', {
@@ -258,6 +267,7 @@ def customer_statement(request, pk):
         'customer': customer,
         'balance': balance,
         'sales': sales,
+        'batch_deferred_sales': batch_deferred_sales,
         'payments': payments,
     })
 
@@ -335,10 +345,20 @@ def customer_payment_delete(request, pk):
 
 def _report_period(request):
     today = timezone.localdate()
+    period = request.GET.get('period', 'month')
     start_value = request.GET.get('start_date')
     end_value = request.GET.get('end_date')
     try:
-        start_date = date.fromisoformat(start_value) if start_value else today.replace(day=1)
+        if start_value:
+            start_date = date.fromisoformat(start_value)
+        elif period == 'day':
+            start_date = today
+        elif period == 'week':
+            start_date = today - timedelta(days=today.weekday())
+        elif period == 'year':
+            start_date = today.replace(month=1, day=1)
+        else:
+            start_date = today.replace(day=1)
         end_date = date.fromisoformat(end_value) if end_value else today
     except ValueError:
         start_date = today.replace(day=1)
@@ -402,6 +422,22 @@ def cashflow_report(request):
         'start_date': start_date,
         'end_date': end_date,
         'summary': get_cashflow_summary(start_date, end_date),
+    })
+
+
+@login_required
+def comprehensive_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    start_date, end_date = _report_period(request)
+    return render(request, 'accounting/comprehensive_report.html', {
+        'profile': profile,
+        'start_date': start_date,
+        'end_date': end_date,
+        'period': request.GET.get('period', 'month'),
+        'summary': get_comprehensive_report(start_date, end_date),
     })
 
 

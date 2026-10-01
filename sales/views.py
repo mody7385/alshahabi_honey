@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import formset_factory
 from django.shortcuts import get_object_or_404, redirect, render
@@ -6,7 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from accounts.models import WorkerProfile
 from customers.models import Customer
 from .forms import ManagerSaleHeaderForm, SaleHeaderForm, SaleLineForm, WorkerSaleForm
-from .models import Sale, SaleBatch
+from .models import money, Sale, SaleBatch
+from .services import sync_sale_batch_ledger
 
 
 def get_or_create_customer_from_form(customer_name, customer_phone):
@@ -73,15 +77,64 @@ def manager_sale_create(request):
                     header_form.cleaned_data.get('customer_name'),
                     header_form.cleaned_data.get('customer_phone'),
                 )
-                payment_type = header_form.cleaned_data['payment_type']
                 first_product = line_forms[0].cleaned_data['product']
+                total_amount = money(sum(
+                    (
+                        Decimal(form.cleaned_data.get('quantity_dabba') or 0)
+                        * Decimal(form.cleaned_data.get('price_per_dabba') or 0)
+                    ) + (
+                        Decimal(form.cleaned_data.get('quantity_kg') or 0)
+                        * Decimal(form.cleaned_data.get('price_per_kg') or 0)
+                    )
+                    for form in line_forms
+                ))
+                cash_amount = header_form.cleaned_data.get('cash_amount') or Decimal('0.00')
+                transfer_amount = header_form.cleaned_data.get('transfer_amount') or Decimal('0.00')
+                deferred_amount = header_form.cleaned_data.get('deferred_amount') or Decimal('0.00')
+
+                if cash_amount == 0 and transfer_amount == 0 and deferred_amount == 0:
+                    legacy_payment_type = header_form.cleaned_data.get('payment_type') or 'cash'
+                    if legacy_payment_type == 'transfer':
+                        transfer_amount = total_amount
+                    elif legacy_payment_type == 'deferred':
+                        deferred_amount = total_amount
+                    else:
+                        cash_amount = total_amount
+
+                batch_validator = SaleBatch(
+                    customer=customer,
+                    store=header_form.cleaned_data.get('store') or SaleBatch.STORE_ALSHAHABI,
+                    cash_amount=cash_amount,
+                    transfer_amount=transfer_amount,
+                    deferred_amount=deferred_amount,
+                    cash_worker_account=header_form.cleaned_data.get('cash_worker_account'),
+                    payment_account=header_form.cleaned_data.get('payment_account'),
+                )
+                payment_type = batch_validator.derive_payment_type()
+
+                try:
+                    batch_validator.clean_accounting_fields(total_amount)
+                except ValidationError as exc:
+                    header_form.add_error(None, exc)
+                    return render(request, 'sales/manager_sale_form.html', {
+                        'header_form': header_form,
+                        'formset': formset,
+                        'profile': profile,
+                    })
 
                 with transaction.atomic():
                     batch = SaleBatch.objects.create(
                         worker=profile,
                         warehouse=first_product.warehouse,
                         customer=customer,
+                        store=header_form.cleaned_data.get('store') or SaleBatch.STORE_ALSHAHABI,
                         payment_type=payment_type,
+                        uses_batch_accounting=True,
+                        cash_amount=cash_amount,
+                        transfer_amount=transfer_amount,
+                        deferred_amount=deferred_amount,
+                        cash_worker_account=header_form.cleaned_data.get('cash_worker_account'),
+                        payment_account=header_form.cleaned_data.get('payment_account'),
                         notes=header_form.cleaned_data.get('notes'),
                     )
 
@@ -97,6 +150,8 @@ def manager_sale_create(request):
                         sale.is_new_accounting_sale = True
                         sale.notes = batch.notes
                         sale.save()
+
+                    sync_sale_batch_ledger(batch)
 
                 return redirect('manager-sales-list')
     else:

@@ -33,11 +33,19 @@
                     <td>{{ sale.product.name }}</td>
                     <td>{{ sale.total_amount }}</td>
                 </tr>
-                {% empty %}
+                {% endfor %}
+                {% for batch in batch_deferred_sales %}
+                <tr>
+                    <td>{{ batch.created_at }}</td>
+                    <td>عملية مختلطة - {{ batch.get_store_display }}</td>
+                    <td>{{ batch.deferred_amount }}</td>
+                </tr>
+                {% endfor %}
+                {% if not sales and not batch_deferred_sales %}
                 <tr>
                     <td colspan="3">لا توجد مبيعات آجل.</td>
                 </tr>
-                {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>

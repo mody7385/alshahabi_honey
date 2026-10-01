@@ -24,6 +24,13 @@ class SaleBatch(models.Model):
         ('cash', 'نقد'),
         ('transfer', 'حوالة'),
         ('deferred', 'آجل'),
+        ('mixed', 'مختلط'),
+    ]
+    STORE_ALSHAHABI = 'alshahabi'
+    STORE_SAMRA = 'samra'
+    STORE_CHOICES = [
+        (STORE_ALSHAHABI, 'الشهابي'),
+        (STORE_SAMRA, 'سمرة'),
     ]
 
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, verbose_name='المخزن')
@@ -35,7 +42,35 @@ class SaleBatch(models.Model):
         null=True,
         verbose_name='العميل',
     )
+    store = models.CharField(
+        max_length=20,
+        choices=STORE_CHOICES,
+        default=STORE_ALSHAHABI,
+        verbose_name='المتجر',
+    )
     payment_type = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='نوع الدفع')
+    uses_batch_accounting = models.BooleanField(default=False, verbose_name='محاسبة على العملية كاملة')
+    cash_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='مبلغ النقد')
+    transfer_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='مبلغ الحوالة')
+    deferred_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='مبلغ الآجل')
+    cash_worker_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        limit_choices_to={'account_type': 'worker', 'is_active': True},
+        related_name='batch_cash_sales',
+        verbose_name='حساب النقد',
+    )
+    payment_account = models.ForeignKey(
+        FinancialAccount,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        limit_choices_to={'account_type__in': ['cashbox', 'bank', 'wallet'], 'is_active': True},
+        related_name='batch_transfer_sales',
+        verbose_name='حساب الحوالة',
+    )
     notes = models.TextField(blank=True, null=True, verbose_name='ملاحظات')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ البيع')
 
@@ -52,6 +87,41 @@ class SaleBatch(models.Model):
 
     def total_profit(self):
         return sum((sale.profit_amount for sale in self.sales.all()), Decimal('0'))
+
+    def total_paid(self):
+        return money(Decimal(self.cash_amount) + Decimal(self.transfer_amount) + Decimal(self.deferred_amount))
+
+    def clean_accounting_fields(self, total_amount):
+        if self.cash_amount < 0 or self.transfer_amount < 0 or self.deferred_amount < 0:
+            raise ValidationError('مبالغ الدفع لا يمكن أن تكون بالسالب.')
+
+        if self.total_paid() != money(total_amount):
+            raise ValidationError('مبالغ الدفع يجب أن تساوي إجمالي البيع.')
+
+        if self.cash_amount > 0:
+            if not self.cash_worker_account_id:
+                raise ValidationError('عند وجود مبلغ نقد يجب اختيار حساب النقد.')
+            if self.cash_worker_account.account_type != 'worker':
+                raise ValidationError('حساب النقد يجب أن يكون من نوع عامل.')
+
+        if self.transfer_amount > 0:
+            if not self.payment_account_id:
+                raise ValidationError('عند وجود مبلغ حوالة يجب اختيار الحساب المالي.')
+            if self.payment_account.account_type not in {'cashbox', 'bank', 'wallet'}:
+                raise ValidationError('حساب الحوالة يجب أن يكون صندوقًا أو بنكًا أو محفظة.')
+
+        if self.deferred_amount > 0 and not self.customer_id:
+            raise ValidationError('عند وجود مبلغ آجل يجب إدخال العميل.')
+
+    def derive_payment_type(self):
+        parts = sum(1 for amount in [self.cash_amount, self.transfer_amount, self.deferred_amount] if amount > 0)
+        if parts > 1:
+            return 'mixed'
+        if self.transfer_amount > 0:
+            return 'transfer'
+        if self.deferred_amount > 0:
+            return 'deferred'
+        return 'cash'
 
 
 class Sale(models.Model):
@@ -74,6 +144,12 @@ class Sale(models.Model):
         blank=True,
         null=True,
         verbose_name='العميل',
+    )
+    store = models.CharField(
+        max_length=20,
+        choices=SaleBatch.STORE_CHOICES,
+        default=SaleBatch.STORE_ALSHAHABI,
+        verbose_name='المتجر',
     )
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='المنتج')
 
@@ -162,7 +238,8 @@ class Sale(models.Model):
         if self.worker_id and self.product_id and self.worker.warehouse and self.worker.warehouse != self.product.warehouse:
             raise ValidationError('هذا المنتج لا يتبع مخزن العامل.')
 
-        if self.is_new_accounting_sale:
+        uses_batch_accounting = self.batch_id and self.batch.uses_batch_accounting
+        if self.is_new_accounting_sale and not uses_batch_accounting:
             if self.payment_type == 'cash':
                 if not self.cash_worker_account_id:
                     raise ValidationError('يجب اختيار حساب العامل في البيع النقدي.')
@@ -201,6 +278,10 @@ class Sale(models.Model):
     def sync_worker_cash_transaction(self):
         from finance.models import WorkerAccountTransaction
 
+        if self.batch_id and self.batch.uses_batch_accounting:
+            WorkerAccountTransaction.objects.filter(sale=self).delete()
+            return
+
         if self.payment_type == 'cash' and self.worker_cash_amount > 0:
             WorkerAccountTransaction.objects.update_or_create(
                 sale=self,
@@ -220,6 +301,8 @@ class Sale(models.Model):
             self.warehouse = self.worker.warehouse
         elif self.product_id:
             self.warehouse = self.product.warehouse
+        if self.batch_id:
+            self.store = self.batch.store
 
         dabba_sales_total = Decimal(self.quantity_dabba) * Decimal(self.price_per_dabba)
         kg_sales_total = Decimal(self.quantity_kg) * Decimal(self.price_per_kg)
