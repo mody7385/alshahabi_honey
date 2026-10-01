@@ -1,12 +1,23 @@
 from django.contrib.auth.decorators import login_required
+from datetime import date
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from accounts.models import WorkerProfile
 from customers.models import Customer
 from sales.models import Sale
 from .forms import CustomerPaymentForm, FinancialAccountForm, ManualAdjustmentForm, MoneyTransferForm
 from .models import CustomerPayment, FinancialAccount, MoneyTransfer
-from .services import get_customer_deferred_balance, get_deferred_customer_balances, post_entry
+from .services import (
+    get_account_balances,
+    get_cashflow_summary,
+    get_customer_deferred_balance,
+    get_deferred_customer_balances,
+    get_personal_expense_summary,
+    get_profit_summary,
+    get_worker_balances,
+    post_entry,
+)
 
 
 def get_manager_profile(request):
@@ -274,4 +285,103 @@ def customer_payment_delete(request, pk):
     return render(request, 'accounting/customer_payment_delete_confirm.html', {
         'profile': profile,
         'payment': payment,
+    })
+
+
+def _report_period(request):
+    today = timezone.localdate()
+    start_value = request.GET.get('start_date')
+    end_value = request.GET.get('end_date')
+    try:
+        start_date = date.fromisoformat(start_value) if start_value else today.replace(day=1)
+        end_date = date.fromisoformat(end_value) if end_value else today
+    except ValueError:
+        start_date = today.replace(day=1)
+        end_date = today
+    return start_date, end_date
+
+
+@login_required
+def reports_dashboard(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    start_date, end_date = _report_period(request)
+    return render(request, 'accounting/reports_dashboard.html', {
+        'profile': profile,
+        'start_date': start_date,
+        'end_date': end_date,
+        'profit_summary': get_profit_summary(start_date, end_date),
+        'account_balances': get_account_balances(),
+        'worker_balances': get_worker_balances(),
+    })
+
+
+@login_required
+def account_balances_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    return render(request, 'accounting/account_balances_report.html', {
+        'profile': profile,
+        'balances': get_account_balances(),
+    })
+
+
+@login_required
+def profit_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    start_date, end_date = _report_period(request)
+    return render(request, 'accounting/profit_report.html', {
+        'profile': profile,
+        'start_date': start_date,
+        'end_date': end_date,
+        'summary': get_profit_summary(start_date, end_date),
+    })
+
+
+@login_required
+def cashflow_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    start_date, end_date = _report_period(request)
+    return render(request, 'accounting/cashflow_report.html', {
+        'profile': profile,
+        'start_date': start_date,
+        'end_date': end_date,
+        'summary': get_cashflow_summary(start_date, end_date),
+    })
+
+
+@login_required
+def worker_balances_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    return render(request, 'accounting/worker_balances_report.html', {
+        'profile': profile,
+        'balances': get_worker_balances(),
+    })
+
+
+@login_required
+def personal_expenses_report(request):
+    profile = get_manager_profile(request)
+    if not profile:
+        return redirect('dashboard')
+
+    start_date, end_date = _report_period(request)
+    return render(request, 'accounting/personal_expenses_report.html', {
+        'profile': profile,
+        'start_date': start_date,
+        'end_date': end_date,
+        'summary': get_personal_expense_summary(start_date, end_date),
     })

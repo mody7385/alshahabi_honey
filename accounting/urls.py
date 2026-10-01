@@ -17,4 +17,10 @@ urlpatterns = [
     path('customer-payments/customer/<int:customer_pk>/add/', views.customer_payment_create, name='accounting-customer-payment-create-for-customer'),
     path('customer-payments/<int:pk>/edit/', views.customer_payment_update, name='accounting-customer-payment-update'),
     path('customer-payments/<int:pk>/delete/', views.customer_payment_delete, name='accounting-customer-payment-delete'),
+    path('reports/', views.reports_dashboard, name='accounting-reports-dashboard'),
+    path('reports/accounts/', views.account_balances_report, name='accounting-account-balances-report'),
+    path('reports/profit/', views.profit_report, name='accounting-profit-report'),
+    path('reports/cashflow/', views.cashflow_report, name='accounting-cashflow-report'),
+    path('reports/workers/', views.worker_balances_report, name='accounting-worker-balances-report'),
+    path('reports/personal-expenses/', views.personal_expenses_report, name='accounting-personal-expenses-report'),
 ]

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}أرصدة العمال{% endblock %}
+
+{% block content %}
+<div class="hero-card"><h2>أرصدة العمال</h2></div>
+<div class="panel-card">
+    <table class="custom-table">
+        <thead><tr><th>العامل</th><th>الرصيد</th></tr></thead>
+        <tbody>
+            {% for item in balances %}
+            <tr><td>{{ item.name }}</td><td>{{ item.balance }}</td></tr>
+            {% empty %}<tr><td colspan="2">لا توجد حسابات عمال.</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

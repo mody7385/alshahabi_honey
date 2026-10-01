@@ -11,7 +11,16 @@ from sales.models import Sale
 from warehouses.models import Warehouse
 
 from accounting.models import CustomerPayment, FinancialAccount, MoneyTransfer
-from accounting.services import get_customer_deferred_balance, post_entry, reverse_entries
+from accounting.services import (
+    get_account_balances,
+    get_cashflow_summary,
+    get_customer_deferred_balance,
+    get_personal_expense_summary,
+    get_profit_summary,
+    get_worker_balances,
+    post_entry,
+    reverse_entries,
+)
 from accounts.models import WorkerProfile
 
 
@@ -225,3 +234,73 @@ class DeferredCustomerAccountingTests(TestCase):
 
         self.assertEqual(account.current_balance(), Decimal("0.00"))
         self.assertEqual(get_customer_deferred_balance(self.customer)["remaining"], Decimal("100.00"))
+
+
+class AccountingReportTests(TestCase):
+    def test_account_balances_report_matches_ledger_balances(self):
+        cash = FinancialAccount.objects.create(
+            name="الصندوق",
+            account_type="cashbox",
+            opening_balance=Decimal("100.00"),
+        )
+        wallet = FinancialAccount.objects.create(
+            name="محفظة",
+            account_type="wallet",
+            opening_balance=Decimal("0.00"),
+        )
+        post_entry(cash, Decimal("50.00"), "in", "manual_deposit", "إضافة", "test", 1)
+        post_entry(wallet, Decimal("20.00"), "in", "manual_deposit", "إضافة", "test", 2)
+
+        balances = get_account_balances()
+
+        self.assertEqual(balances[0]["balance"], Decimal("150.00"))
+        self.assertEqual(balances[1]["balance"], Decimal("20.00"))
+
+    def test_profit_summary_includes_sales_minus_operating_expenses_and_excludes_personal(self):
+        account = FinancialAccount.objects.create(name="الصندوق", account_type="cashbox")
+        post_entry(account, Decimal("200.00"), "in", "sale_cash", "بيع", "sale", 1)
+        post_entry(account, Decimal("50.00"), "out", "operating_expense", "تشغيل", "expense", 1)
+        post_entry(account, Decimal("25.00"), "out", "personal_expense", "شخصي", "expense", 2)
+
+        summary = get_profit_summary(None, None)
+
+        self.assertEqual(summary["sales_total"], Decimal("200.00"))
+        self.assertEqual(summary["operating_expenses"], Decimal("50.00"))
+        self.assertEqual(summary["personal_expenses"], Decimal("25.00"))
+        self.assertEqual(summary["net_profit"], Decimal("150.00"))
+
+    def test_cashflow_summary_groups_money_by_category(self):
+        account = FinancialAccount.objects.create(name="الصندوق", account_type="cashbox")
+        post_entry(account, Decimal("100.00"), "in", "sale_cash", "بيع", "sale", 1)
+        post_entry(account, Decimal("30.00"), "out", "supplier_payment", "سداد", "supplier_payment", 1)
+
+        summary = get_cashflow_summary(None, None)
+
+        self.assertEqual(summary["in"]["sale_cash"], Decimal("100.00"))
+        self.assertEqual(summary["out"]["supplier_payment"], Decimal("30.00"))
+
+    def test_worker_balances_report_lists_worker_accounts(self):
+        FinancialAccount.objects.create(
+            name="عامل 1",
+            account_type="worker",
+            opening_balance=Decimal("10.00"),
+        )
+        FinancialAccount.objects.create(
+            name="بنك",
+            account_type="bank",
+            opening_balance=Decimal("50.00"),
+        )
+
+        balances = get_worker_balances()
+
+        self.assertEqual(len(balances), 1)
+        self.assertEqual(balances[0]["name"], "عامل 1")
+
+    def test_personal_expense_summary_counts_only_personal_expenses(self):
+        account = FinancialAccount.objects.create(name="محفظة", account_type="wallet")
+        post_entry(account, Decimal("25.00"), "out", "personal_expense", "شخصي", "expense", 1)
+        post_entry(account, Decimal("50.00"), "out", "operating_expense", "تشغيل", "expense", 2)
+
+        summary = get_personal_expense_summary(None, None)
+
+        self.assertEqual(summary["total"], Decimal("25.00"))

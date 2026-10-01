@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}المصاريف الشخصية{% endblock %}
+
+{% block content %}
+<div class="hero-card"><h2>المصاريف الشخصية</h2><p class="muted">الإجمالي: {{ summary.total }}</p></div>
+<div class="panel-card">
+    <table class="custom-table">
+        <thead><tr><th>التاريخ</th><th>الحساب</th><th>الوصف</th><th>المبلغ</th></tr></thead>
+        <tbody>
+            {% for entry in summary.entries %}
+            <tr><td>{{ entry.occurred_at }}</td><td>{{ entry.account.name }}</td><td>{{ entry.description }}</td><td>{{ entry.amount }}</td></tr>
+            {% empty %}<tr><td colspan="4">لا توجد مصاريف شخصية.</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

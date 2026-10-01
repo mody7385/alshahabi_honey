@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}التدفق النقدي{% endblock %}
+
+{% block content %}
+<div class="hero-card"><h2>التدفق النقدي</h2><p class="muted">من {{ start_date }} إلى {{ end_date }}</p></div>
+<div class="grid">
+    <div class="col-6">
+        <div class="panel-card">
+            <h3>داخل</h3>
+            <table class="custom-table">
+                {% for category, total in summary.in.items %}
+                <tr><td>{{ category }}</td><td>{{ total }}</td></tr>
+                {% empty %}<tr><td>لا توجد حركات داخلة.</td><td></td></tr>{% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="panel-card">
+            <h3>خارج</h3>
+            <table class="custom-table">
+                {% for category, total in summary.out.items %}
+                <tr><td>{{ category }}</td><td>{{ total }}</td></tr>
+                {% empty %}<tr><td>لا توجد حركات خارجة.</td><td></td></tr>{% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

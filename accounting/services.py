@@ -143,3 +143,84 @@ def get_deferred_customer_balances():
 
     customers = Customer.objects.filter(id__in=customer_ids).order_by('name')
     return [get_customer_deferred_balance(customer) for customer in customers]
+
+
+def _entries_for_period(start_date, end_date):
+    entries = LedgerEntry.objects.filter(is_reversed=False)
+    if start_date:
+        entries = entries.filter(occurred_at__date__gte=start_date)
+    if end_date:
+        entries = entries.filter(occurred_at__date__lte=end_date)
+    return entries
+
+
+def _sum_entries(entries, direction=None, categories=None):
+    queryset = entries
+    if direction:
+        queryset = queryset.filter(direction=direction)
+    if categories:
+        queryset = queryset.filter(category__in=categories)
+    total = queryset.aggregate(total=Sum('amount')).get('total') or Decimal('0.00')
+    return _money(total)
+
+
+def get_account_balances() -> list[dict]:
+    return [
+        {
+            'account': account,
+            'name': account.name,
+            'type': account.get_account_type_display(),
+            'balance': account.current_balance(),
+        }
+        for account in FinancialAccount.objects.all()
+    ]
+
+
+def get_profit_summary(start_date, end_date) -> dict:
+    entries = _entries_for_period(start_date, end_date)
+    sales_total = _sum_entries(entries, 'in', ['sale_cash', 'sale_transfer', 'customer_payment'])
+    purchase_total = _sum_entries(entries, 'out', ['supplier_purchase_payment'])
+    operating_expenses = _sum_entries(entries, 'out', ['operating_expense', 'transfer_fee'])
+    personal_expenses = _sum_entries(entries, 'out', ['personal_expense'])
+    return {
+        'sales_total': sales_total,
+        'purchase_total': purchase_total,
+        'operating_expenses': operating_expenses,
+        'personal_expenses': personal_expenses,
+        'net_profit': _money(sales_total - purchase_total - operating_expenses),
+    }
+
+
+def get_cashflow_summary(start_date, end_date) -> dict:
+    entries = _entries_for_period(start_date, end_date)
+    summary = {'in': {}, 'out': {}}
+    grouped = (
+        entries
+        .values('direction', 'category')
+        .annotate(total=Sum('amount'))
+        .order_by('direction', 'category')
+    )
+    for row in grouped:
+        summary[row['direction']][row['category']] = _money(row['total'])
+    return summary
+
+
+def get_worker_balances() -> list[dict]:
+    return [
+        {
+            'account': account,
+            'name': account.name,
+            'balance': account.current_balance(),
+        }
+        for account in FinancialAccount.objects.filter(account_type='worker', is_active=True).order_by('name')
+    ]
+
+
+def get_personal_expense_summary(start_date, end_date) -> dict:
+    entries = _entries_for_period(start_date, end_date)
+    total = _sum_entries(entries, 'out', ['personal_expense'])
+    personal_entries = entries.filter(direction='out', category='personal_expense').select_related('account')
+    return {
+        'total': total,
+        'entries': personal_entries,
+    }

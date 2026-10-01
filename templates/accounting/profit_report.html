@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير الأرباح{% endblock %}
+
+{% block content %}
+<div class="hero-card"><h2>تقرير الأرباح</h2><p class="muted">من {{ start_date }} إلى {{ end_date }}</p></div>
+<div class="grid">
+    <div class="col-3"><div class="stat-card"><div class="stat-title">المبيعات</div><div class="stat-number">{{ summary.sales_total }}</div></div></div>
+    <div class="col-3"><div class="stat-card"><div class="stat-title">المشتريات</div><div class="stat-number">{{ summary.purchase_total }}</div></div></div>
+    <div class="col-3"><div class="stat-card"><div class="stat-title">مصاريف التشغيل</div><div class="stat-number">{{ summary.operating_expenses }}</div></div></div>
+    <div class="col-3"><div class="stat-card"><div class="stat-title">صافي الربح</div><div class="stat-number">{{ summary.net_profit }}</div></div></div>
+</div>
+{% endblock %}
